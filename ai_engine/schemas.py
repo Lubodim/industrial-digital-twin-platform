@@ -73,6 +73,12 @@ EMPTY_EXTERNAL_RESEARCH_RESULT: dict[str, Any] = {
     "summary": None,
 
     "missing_information": [],
+    
+    "custom_findings": [],
+
+    "additional_metrics": {},
+
+    "unanswered_questions": [],
 
     "requires_engineer_review": True,
 }
