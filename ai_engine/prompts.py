@@ -33,6 +33,12 @@ Engineering rules:
 7. List unresolved engineering questions in unanswered_questions.
 8. Mark requires_engineer_review as true whenever specialist verification,
    testing, simulation, supplier confirmation, or standards review is required.
+9. Fields whose names end with "_percent" must contain only one JSON number
+   without the percent sign, or null.
+10. Never put explanatory text, ranges, units, or the string "null" inside
+    numeric fields.
+11. When only a range is available, put the midpoint in the numeric field and
+    describe the complete range in the relevant notes field or additional_metrics.
 
 Output rules:
 1. Return only one valid JSON object.
@@ -111,6 +117,11 @@ RESEARCH INSTRUCTIONS:
 - Include sources when available.
 - Keep estimates clearly identified as estimates.
 - Do not expose or request confidential information.
+- Numeric percentage fields must contain only a number, for example -25.0,
+  not "-15% to -40%".
+- Use JSON null, never the string "null".
+- When an estimate is a range, place one representative estimate in the
+  numeric field and preserve the full range in notes or additional_metrics.
 
 REQUIRED JSON OUTPUT STRUCTURE:
 {_json_schema_for_prompt()}

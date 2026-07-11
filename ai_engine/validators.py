@@ -400,8 +400,10 @@ def validate_external_research_result(
         supplied_data,
     )
 
-    errors = _validate_research_result(normalized_data)
+    _normalize_numeric_fields(normalized_data)
 
+    errors = _validate_research_result(normalized_data)
+    
     return ValidationResult(
         is_valid=not errors,
         normalized_data=normalized_data,
@@ -409,3 +411,62 @@ def validate_external_research_result(
         warnings=warnings,
     )
     
+def _normalize_nullable_number(value: Any) -> Any:
+    """
+    Convert common AI representations of empty or numeric values.
+
+    The function deliberately does not convert ranges or explanatory text,
+    because doing so could silently change engineering meaning.
+    """
+
+    if value is None:
+        return None
+
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return value
+
+    if not isinstance(value, str):
+        return value
+
+    cleaned = value.strip()
+
+    if cleaned.lower() in {"null", "none", "n/a", "unknown", ""}:
+        return None
+
+    normalized = cleaned.replace("%", "").replace(",", ".")
+
+    try:
+        return float(normalized)
+    except ValueError:
+        return value
+
+
+def _normalize_numeric_fields(data: dict[str, Any]) -> None:
+    """
+    Normalize known numeric fields in place before schema validation.
+    """
+
+    manufacturing = data["manufacturing"]
+    manufacturing["estimated_cycle_time_change_percent"] = (
+        _normalize_nullable_number(
+            manufacturing["estimated_cycle_time_change_percent"]
+        )
+    )
+
+    costs = data["costs"]
+
+    for key in (
+        "estimated_material_price_per_kg",
+        "estimated_material_cost_change_percent",
+        "estimated_production_cost_change_percent",
+        "estimated_total_cost_change_percent",
+    ):
+        costs[key] = _normalize_nullable_number(costs[key])
+
+    metadata = data["metadata"]
+    metadata["response_time_ms"] = _normalize_nullable_number(
+        metadata["response_time_ms"]
+    )
+    metadata["provider_confidence_percent"] = _normalize_nullable_number(
+        metadata["provider_confidence_percent"]
+    )
