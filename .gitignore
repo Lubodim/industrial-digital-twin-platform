@@ -31,3 +31,8 @@ Thumbs.db
 
 .env
 
+data/exchange/raw_research/*.json
+data/exchange/validated_research/*.json
+
+!data/exchange/raw_research/.gitkeep
+!data/exchange/validated_research/.gitkeep
