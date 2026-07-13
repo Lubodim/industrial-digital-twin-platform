@@ -252,10 +252,14 @@ class DigitalTwin(models.Model):
     @property
     def effective_mass_kg(self) -> Decimal | None:
         """
-        Return entered mass or calculate it from volume and density.
+        Return a positive manually entered mass or calculate it
+        from volume and material density.
         """
 
-        if self.mass_kg is not None:
+        if (
+            self.mass_kg is not None
+            and Decimal(self.mass_kg) > Decimal("0")
+        ):
             return Decimal(self.mass_kg)
 
         return self.calculated_mass_kg

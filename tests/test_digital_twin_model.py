@@ -120,3 +120,11 @@ class DigitalTwinModelTests(TestCase):
 
         with self.assertRaises(ValidationError):
             self.twin.full_clean()
+    
+    def test_calculates_mass_when_entered_mass_is_zero(self):
+        self.twin.mass_kg = Decimal("0.000")
+
+        self.assertEqual(
+            self.twin.effective_mass_kg,
+            Decimal("1.215"),
+        )
