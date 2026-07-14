@@ -36,3 +36,13 @@ data/exchange/validated_research/*.json
 
 !data/exchange/raw_research/.gitkeep
 !data/exchange/validated_research/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+
+# FreeCAD backup files
+*.FCBak
+
+# Windows
+Thumbs.db
