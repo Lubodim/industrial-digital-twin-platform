@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     Experiment,
     ExperimentChatMessage,
+    ExperimentProposal,
 )
 
 
@@ -29,6 +30,33 @@ class ExperimentChatMessageInline(admin.TabularInline):
         "sequence",
     )
 
+class ExperimentProposalInline(admin.TabularInline):
+    model = ExperimentProposal
+    extra = 0
+
+    fields = (
+        "sequence",
+        "category",
+        "title",
+        "parameter_name",
+        "current_value",
+        "proposed_value",
+        "risk_level",
+        "confidence_percent",
+        "status",
+        "reviewed_by",
+        "reviewed_at",
+    )
+
+    readonly_fields = (
+        "sequence",
+        "created_at",
+        "updated_at",
+    )
+
+    ordering = (
+        "sequence",
+    )
 
 @admin.register(Experiment)
 class ExperimentAdmin(admin.ModelAdmin):
@@ -139,8 +167,9 @@ class ExperimentAdmin(admin.ModelAdmin):
     )
 
     inlines = (
-        ExperimentChatMessageInline,
-    )
+            ExperimentChatMessageInline,
+            ExperimentProposalInline,
+        )
 
     @admin.display(description="Messages")
     def display_message_count(self, obj):
@@ -204,7 +233,48 @@ class ExperimentAdmin(admin.ModelAdmin):
 
         formset.save_m2m()
 
+@admin.register(ExperimentProposal)
+class ExperimentProposalAdmin(admin.ModelAdmin):
+    list_display = (
+        "experiment",
+        "sequence",
+        "category",
+        "title",
+        "risk_level",
+        "confidence_percent",
+        "status",
+        "reviewed_by",
+        "reviewed_at",
+    )
 
+    search_fields = (
+        "experiment__name",
+        "experiment__digital_twin__part_number",
+        "title",
+        "description",
+        "parameter_name",
+        "reason",
+    )
+
+    list_filter = (
+        "status",
+        "category",
+        "risk_level",
+        "requires_validation",
+        "created_at",
+    )
+
+    readonly_fields = (
+        "sequence",
+        "created_at",
+        "updated_at",
+    )
+
+    ordering = (
+        "experiment",
+        "sequence",
+    )
+    
 @admin.register(ExperimentChatMessage)
 class ExperimentChatMessageAdmin(admin.ModelAdmin):
     list_display = (

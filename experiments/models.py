@@ -426,3 +426,250 @@ class ExperimentChatMessage(models.Model):
             f"{self.experiment.name} "
             f"#{self.sequence} - {self.get_role_display()}"
         )
+class ExperimentProposal(models.Model):
+    """
+    One structured engineering change proposed by the local AI agent.
+
+    The proposal never modifies the source digital twin directly.
+    An engineer must explicitly approve or reject it.
+    """
+
+    class Category(models.TextChoices):
+        MATERIAL = "MATERIAL", "Material"
+        TECHNOLOGY = "TECHNOLOGY", "Technology"
+        GEOMETRY = "GEOMETRY", "Geometry"
+        COST = "COST", "Cost"
+        QUALITY = "QUALITY", "Quality"
+        PRODUCTION = "PRODUCTION", "Production"
+        SAFETY = "SAFETY", "Safety"
+        OTHER = "OTHER", "Other"
+
+    class RiskLevel(models.TextChoices):
+        LOW = "LOW", "Low"
+        MEDIUM = "MEDIUM", "Medium"
+        HIGH = "HIGH", "High"
+        UNKNOWN = "UNKNOWN", "Unknown"
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        APPROVED = "APPROVED", "Approved"
+        REJECTED = "REJECTED", "Rejected"
+        SUPERSEDED = "SUPERSEDED", "Superseded"
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    experiment = models.ForeignKey(
+        Experiment,
+        on_delete=models.CASCADE,
+        related_name="proposals",
+    )
+
+    internal_analysis = models.ForeignKey(
+        "ai_engine.InternalAnalysis",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="experiment_proposals",
+    )
+
+    sequence = models.PositiveIntegerField(
+        editable=False,
+    )
+
+    category = models.CharField(
+        max_length=20,
+        choices=Category.choices,
+        db_index=True,
+    )
+
+    title = models.CharField(
+        max_length=255,
+    )
+
+    description = models.TextField()
+
+    parameter_name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+
+    # JSONField preserves strings, numbers, booleans and null values.
+    current_value = models.JSONField(
+        null=True,
+        blank=True,
+    )
+
+    proposed_value = models.JSONField(
+        null=True,
+        blank=True,
+    )
+
+    unit = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+    )
+
+    reason = models.TextField()
+
+    expected_benefit = models.TextField()
+
+    risk_level = models.CharField(
+        max_length=20,
+        choices=RiskLevel.choices,
+        default=RiskLevel.UNKNOWN,
+        db_index=True,
+    )
+
+    confidence_percent = models.PositiveSmallIntegerField()
+
+    requires_validation = models.BooleanField(
+        default=True,
+    )
+
+    validation_requirements = models.JSONField(
+        default=list,
+        blank=True,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_experiment_proposals",
+    )
+
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    review_note = models.TextField(
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    def clean(self) -> None:
+        super().clean()
+
+        errors: dict[str, str] = {}
+
+        if not 0 <= self.confidence_percent <= 100:
+            errors["confidence_percent"] = (
+                "Confidence must be between 0 and 100."
+            )
+
+        if not isinstance(
+            self.validation_requirements,
+            list,
+        ):
+            errors["validation_requirements"] = (
+                "Validation requirements must be a list."
+            )
+
+        reviewed_statuses = {
+            self.Status.APPROVED,
+            self.Status.REJECTED,
+        }
+
+        if (
+            self.status in reviewed_statuses
+            and self.reviewed_by_id is None
+        ):
+            errors["reviewed_by"] = (
+                "A reviewed proposal must identify the engineer."
+            )
+
+        if (
+            self.status == self.Status.PENDING
+            and self.reviewed_at is not None
+        ):
+            errors["reviewed_at"] = (
+                "A pending proposal cannot have a review date."
+            )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs) -> None:
+        if not self.sequence:
+            latest_sequence = (
+                ExperimentProposal.objects.filter(
+                    experiment=self.experiment
+                ).aggregate(
+                    maximum=Max("sequence")
+                )["maximum"]
+                or 0
+            )
+
+            self.sequence = latest_sequence + 1
+
+        self.full_clean()
+
+        super().save(*args, **kwargs)
+
+    @property
+    def is_reviewed(self) -> bool:
+        return self.status in {
+            self.Status.APPROVED,
+            self.Status.REJECTED,
+        }
+
+    class Meta:
+        ordering = [
+            "experiment",
+            "sequence",
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "experiment",
+                    "sequence",
+                ],
+                name=(
+                    "unique_experiment_proposal_sequence"
+                ),
+            ),
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "experiment",
+                    "status",
+                ],
+            ),
+            models.Index(
+                fields=[
+                    "category",
+                    "status",
+                ],
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return (
+            f"{self.experiment.name} "
+            f"#{self.sequence} - {self.title}"
+        )

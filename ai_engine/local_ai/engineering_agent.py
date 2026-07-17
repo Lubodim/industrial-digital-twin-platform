@@ -14,6 +14,10 @@ from uuid import UUID
 from django.db import transaction
 from django.utils import timezone
 
+from ai_engine.local_ai.proposal_generator import (
+    ProposalGenerator,
+)
+
 from ai_engine.local_ai.analysis_result import (
     EngineeringAnalysisResult,
     EngineeringAnalysisValidationError,
@@ -64,6 +68,8 @@ class EngineeringAgent:
         self,
         *,
         client: OllamaClient | None = None,
+        proposal_generator: ProposalGenerator | None = None,
+
         prompt_builder: (
             EngineeringPromptBuilder | None
         ) = None,
@@ -75,8 +81,11 @@ class EngineeringAgent:
         self.prompt_builder = (
             prompt_builder
             or EngineeringPromptBuilder()
+       )
+        self.proposal_generator = (
+            proposal_generator
+            or ProposalGenerator()
         )
-
     def analyze(
         self,
         *,
@@ -233,6 +242,7 @@ class EngineeringAgent:
         context: dict[str, Any],
         requested_by=None,
     ) -> InternalAnalysis:
+
         """
         Store the completed result without changing the source twin.
         """
@@ -346,6 +356,15 @@ class EngineeringAgent:
             )
         )
 
+        
+        proposal_generation = (
+            self.proposal_generator.generate(
+                experiment=experiment,
+                analysis_result=result,
+                internal_analysis=internal_analysis,
+                replace_pending=True,
+    )
+)
         experiment.local_analysis = result_data
 
         experiment.status = (
@@ -389,7 +408,10 @@ class EngineeringAgent:
                     .overall_confidence_percent
                 ),
                 "proposal_count": (
-                    result.proposal_count
+                    proposal_generation.created_count
+                ),
+                "proposal_generation_warnings": list(
+                    proposal_generation.warnings
                 ),
                 "structured_analysis": (
                     result_data
