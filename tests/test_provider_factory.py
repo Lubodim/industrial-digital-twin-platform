@@ -7,7 +7,7 @@ from ai_engine.provider_factory import (
 )
 from ai_engine.providers.openai import OpenAIProvider
 from ai_engine.providers.grok import GrokProvider
-
+from ai_engine.providers.claude import ClaudeProvider
 
 class ProviderFactoryTests(SimpleTestCase):
     def test_returns_supported_provider_names(self):
@@ -108,4 +108,42 @@ class ProviderFactoryTests(SimpleTestCase):
         self.assertIsInstance(
             provider,
             GrokProvider,
+        )
+    
+    def test_creates_claude_provider_with_overrides(self):
+        provider = ProviderFactory.create(
+        "claude",
+        api_key="test-key",
+        model="test-model",
+        timeout_seconds=30,
+        max_output_tokens=1000,
+    )
+
+        self.assertIsInstance(
+            provider,
+            ClaudeProvider,
+        )
+        self.assertEqual(
+            provider.model,
+            "test-model",
+        )
+        self.assertEqual(
+            provider.timeout_seconds,
+            30,
+        )
+        self.assertEqual(
+            provider.max_output_tokens,
+            1000,
+        )
+
+    def test_accepts_claude_alias(self):
+        provider = ProviderFactory.create(
+            "anthropic",
+            api_key="test-key",
+            model="test-model",
+        )
+
+        self.assertIsInstance(
+            provider,
+            ClaudeProvider,
         )

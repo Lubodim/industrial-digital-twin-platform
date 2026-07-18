@@ -94,7 +94,7 @@ class ProviderFactory:
         environment_keys = {
             "openai": "OPENAI_API_KEY",
             "gemini": "GEMINI_API_KEY",
-            "claude": "CLAUDE_API_KEY",
+            "claude": "ANTHROPIC_API_KEY",
             "grok": "GROK_API_KEY",
         }
 
@@ -221,37 +221,34 @@ class ProviderFactory:
         cls,
         **overrides: Any,
     ) -> BaseAIProvider:
-        """Create Claude provider after its adapter is implemented."""
+        """
+        Create the Anthropic Claude provider.
+        """
 
-        try:
-            from ai_engine.providers.claude import ClaudeProvider
-        except (ImportError, AttributeError) as error:
-            raise ProviderNotImplementedError(
-                "Claude provider is not implemented yet."
-            ) from error
+        from ai_engine.providers.claude import ClaudeProvider
 
         api_key = cls._get_required_value(
             override_value=overrides.get("api_key"),
-            environment_key="CLAUDE_API_KEY",
+            environment_key="ANTHROPIC_API_KEY",
             provider_name="Claude",
         )
 
         model = cls._get_value(
             override_value=overrides.get("model"),
-            environment_key="CLAUDE_MODEL",
-            default="claude-sonnet",
+            environment_key="ANTHROPIC_MODEL",
+            default="claude-sonnet-5",
         )
 
         timeout_seconds = cls._get_integer_value(
             override_value=overrides.get("timeout_seconds"),
-            environment_key="CLAUDE_TIMEOUT_SECONDS",
+            environment_key="ANTHROPIC_TIMEOUT_SECONDS",
             default=90,
             minimum=1,
         )
 
         max_output_tokens = cls._get_integer_value(
             override_value=overrides.get("max_output_tokens"),
-            environment_key="CLAUDE_MAX_OUTPUT_TOKENS",
+            environment_key="ANTHROPIC_MAX_OUTPUT_TOKENS",
             default=2500,
             minimum=1,
         )
