@@ -268,14 +268,9 @@ class ProviderFactory:
         cls,
         **overrides: Any,
     ) -> BaseAIProvider:
-        """Create Grok provider after its adapter is implemented."""
+        """Create the xAI Grok provider."""
 
-        try:
-            from ai_engine.providers.grok import GrokProvider
-        except (ImportError, AttributeError) as error:
-            raise ProviderNotImplementedError(
-                "Grok provider is not implemented yet."
-            ) from error
+        from ai_engine.providers.grok import GrokProvider
 
         api_key = cls._get_required_value(
             override_value=overrides.get("api_key"),
@@ -286,7 +281,7 @@ class ProviderFactory:
         model = cls._get_value(
             override_value=overrides.get("model"),
             environment_key="GROK_MODEL",
-            default="grok",
+            default="grok-4.5",
         )
 
         timeout_seconds = cls._get_integer_value(
@@ -303,13 +298,19 @@ class ProviderFactory:
             minimum=1,
         )
 
+        base_url = cls._get_value(
+            override_value=overrides.get("base_url"),
+            environment_key="GROK_BASE_URL",
+            default="https://api.x.ai/v1",
+        )
+
         return GrokProvider(
             api_key=api_key,
             model=model,
             timeout_seconds=timeout_seconds,
             max_output_tokens=max_output_tokens,
+            base_url=base_url,
         )
-
     @staticmethod
     def _get_environment_value(environment_key: str) -> str | None:
         """Read and clean an environment variable."""

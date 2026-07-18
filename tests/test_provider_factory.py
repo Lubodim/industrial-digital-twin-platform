@@ -6,6 +6,7 @@ from ai_engine.provider_factory import (
     UnsupportedProviderError,
 )
 from ai_engine.providers.openai import OpenAIProvider
+from ai_engine.providers.grok import GrokProvider
 
 
 class ProviderFactoryTests(SimpleTestCase):
@@ -65,3 +66,46 @@ class ProviderFactoryTests(SimpleTestCase):
     def test_non_string_provider_name_is_rejected(self):
         with self.assertRaises(TypeError):
             ProviderFactory.create(123)
+
+    def test_creates_grok_provider_with_overrides(self):
+        provider = ProviderFactory.create(
+            "grok",
+            api_key="test-key",
+            model="test-model",
+            timeout_seconds=30,
+            max_output_tokens=1000,
+            base_url="https://api.x.ai/v1",
+        )
+
+        self.assertIsInstance(
+            provider,
+            GrokProvider,
+        )
+        self.assertEqual(
+            provider.model,
+            "test-model",
+        )
+        self.assertEqual(
+            provider.timeout_seconds,
+            30,
+        )
+        self.assertEqual(
+            provider.max_output_tokens,
+            1000,
+        )
+        self.assertEqual(
+            provider.base_url,
+            "https://api.x.ai/v1",
+        )
+
+    def test_accepts_grok_aliases(self):
+        provider = ProviderFactory.create(
+            "xai",
+            api_key="test-key",
+            model="test-model",
+        )
+
+        self.assertIsInstance(
+            provider,
+            GrokProvider,
+        )
