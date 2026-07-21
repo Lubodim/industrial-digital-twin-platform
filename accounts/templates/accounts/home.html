@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>{{ page_title }}</title>
+</head>
+<body>
+    <header>
+        <h1>{{ page_title }}</h1>
+
+        <p>
+            Влязъл потребител:
+            <strong>{{ request.user.get_username }}</strong>
+        </p>
+
+        <form
+            method="post"
+            action="{% url 'accounts:logout' %}"
+        >
+            {% csrf_token %}
+
+            <button type="submit">
+                Изход
+            </button>
+        </form>
+    </header>
+
+    <main>
+        {% if messages %}
+            <section>
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </section>
+        {% endif %}
+
+        <h2>Системата е достъпна</h2>
+
+        <p>
+            Authentication и базовата защита работят.
+            Пълният dashboard ще бъде добавен на следващ етап.
+        </p>
+    </main>
+</body>
+</html>

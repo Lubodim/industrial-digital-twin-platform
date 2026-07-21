@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Вход | Industrial Digital Twin Platform</title>
+</head>
+<body>
+    <main>
+        <h1>Industrial Digital Twin Platform</h1>
+        <h2>Вход в системата</h2>
+
+        {% if messages %}
+            <section>
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </section>
+        {% endif %}
+
+        {% if form.non_field_errors %}
+            <section>
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </section>
+        {% endif %}
+
+        <form method="post" action="{% url 'accounts:login' %}">
+            {% csrf_token %}
+
+            <input
+                type="hidden"
+                name="next"
+                value="{{ next }}"
+            >
+
+            <div>
+                <label for="{{ form.username.id_for_label }}">
+                    {{ form.username.label }}
+                </label>
+
+                {{ form.username }}
+
+                {% for error in form.username.errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div>
+                <label for="{{ form.password.id_for_label }}">
+                    {{ form.password.label }}
+                </label>
+
+                {{ form.password }}
+
+                {% for error in form.password.errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <button type="submit">
+                Вход
+            </button>
+        </form>
+    </main>
+</body>
+</html>
