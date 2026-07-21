@@ -24,18 +24,25 @@ class ProviderConfigurationError(ProviderFactoryError):
 
 
 class ProviderNotImplementedError(ProviderFactoryError):
-    """Raised when a supported provider is not implemented yet."""
+    """
+    Raised when a recognized provider adapter is unavailable.
+
+    This exception remains available for backwards compatibility,
+    although all currently supported providers are implemented.
+    """
 
 
 class ProviderFactory:
     """
-    Create external AI providers from a common configuration interface.
+    Create external AI providers through one configuration interface.
 
-    Supported provider names:
-    - openai
-    - gemini
-    - claude
-    - grok
+    Supported engineering research providers:
+    - OpenAI
+    - Google Gemini
+    - Anthropic Claude
+    - xAI Grok
+
+    Explicit keyword overrides have priority over environment variables.
     """
 
     SUPPORTED_PROVIDERS = (
@@ -45,6 +52,23 @@ class ProviderFactory:
         "grok",
     )
 
+    PROVIDER_API_KEY_ENVIRONMENTS = {
+        "openai": "OPENAI_API_KEY",
+        "gemini": "GEMINI_API_KEY",
+        "claude": "ANTHROPIC_API_KEY",
+        "grok": "GROK_API_KEY",
+    }
+
+    PROVIDER_ALIASES = {
+        "chatgpt": "openai",
+        "gpt": "openai",
+        "google": "gemini",
+        "google-gemini": "gemini",
+        "anthropic": "claude",
+        "xai": "grok",
+        "x.ai": "grok",
+    }
+
     @classmethod
     def create(
         cls,
@@ -52,61 +76,101 @@ class ProviderFactory:
         **overrides: Any,
     ) -> BaseAIProvider:
         """
-        Create a configured provider instance.
+        Create and return a configured AI provider.
 
-        Values supplied through overrides have priority over environment
-        variables. This is useful for tests and future Django settings.
+        Values supplied through ``overrides`` take precedence over
+        environment variables. This makes the factory suitable both for
+        application use and isolated unit tests.
         """
 
         normalized_name = cls._normalize_provider_name(provider_name)
 
-        if normalized_name == "openai":
-            return cls._create_openai_provider(**overrides)
+        creators = {
+            "openai": cls._create_openai_provider,
+            "gemini": cls._create_gemini_provider,
+            "claude": cls._create_claude_provider,
+            "grok": cls._create_grok_provider,
+        }
 
-        if normalized_name == "gemini":
-            return cls._create_gemini_provider(**overrides)
+        creator = creators.get(normalized_name)
 
-        if normalized_name == "claude":
-            return cls._create_claude_provider(**overrides)
+        if creator is None:
+            raise UnsupportedProviderError(
+                f"Unsupported AI provider: {provider_name!r}. "
+                f"Supported providers: "
+                f"{', '.join(cls.SUPPORTED_PROVIDERS)}."
+            )
 
-        if normalized_name == "grok":
-            return cls._create_grok_provider(**overrides)
-
-        raise UnsupportedProviderError(
-            f"Unsupported AI provider: {provider_name!r}. "
-            f"Supported providers: {', '.join(cls.SUPPORTED_PROVIDERS)}."
-        )
+        return creator(**overrides)
 
     @classmethod
     def get_supported_providers(cls) -> list[str]:
-        """Return all provider names recognized by the application."""
+        """Return all provider names recognized by the platform."""
 
         return list(cls.SUPPORTED_PROVIDERS)
 
     @classmethod
     def get_configured_providers(cls) -> list[str]:
         """
-        Return providers that currently have an API key configured.
+        Return providers whose API keys are currently configured.
 
-        This does not guarantee that the provider implementation is complete.
+        This method checks only whether a non-empty API key exists.
+        It does not perform a live API request or verify billing and quota.
         """
-
-        environment_keys = {
-            "openai": "OPENAI_API_KEY",
-            "gemini": "GEMINI_API_KEY",
-            "claude": "ANTHROPIC_API_KEY",
-            "grok": "GROK_API_KEY",
-        }
 
         return [
             provider_name
-            for provider_name, environment_key in environment_keys.items()
+            for provider_name, environment_key
+            in cls.PROVIDER_API_KEY_ENVIRONMENTS.items()
             if cls._get_environment_value(environment_key)
         ]
 
-    @staticmethod
-    def _normalize_provider_name(provider_name: str) -> str:
-        """Normalize and validate the requested provider name."""
+    @classmethod
+    def is_provider_supported(
+        cls,
+        provider_name: str,
+    ) -> bool:
+        """
+        Return whether a provider name or alias is recognized.
+
+        Invalid non-string or empty input returns False instead of raising.
+        """
+
+        try:
+            normalized_name = cls._normalize_provider_name(provider_name)
+        except (TypeError, ValueError):
+            return False
+
+        return normalized_name in cls.SUPPORTED_PROVIDERS
+
+    @classmethod
+    def is_provider_configured(
+        cls,
+        provider_name: str,
+    ) -> bool:
+        """
+        Return whether the requested provider has an API key configured.
+        """
+
+        normalized_name = cls._normalize_provider_name(provider_name)
+
+        if normalized_name not in cls.SUPPORTED_PROVIDERS:
+            raise UnsupportedProviderError(
+                f"Unsupported AI provider: {provider_name!r}."
+            )
+
+        environment_key = (
+            cls.PROVIDER_API_KEY_ENVIRONMENTS[normalized_name]
+        )
+
+        return bool(cls._get_environment_value(environment_key))
+
+    @classmethod
+    def _normalize_provider_name(
+        cls,
+        provider_name: str,
+    ) -> str:
+        """Normalize and validate a provider name."""
 
         if not isinstance(provider_name, str):
             raise TypeError("provider_name must be a string.")
@@ -116,23 +180,17 @@ class ProviderFactory:
         if not normalized_name:
             raise ValueError("provider_name cannot be empty.")
 
-        aliases = {
-            "chatgpt": "openai",
-            "gpt": "openai",
-            "google": "gemini",
-            "anthropic": "claude",
-            "xai": "grok",
-            "x.ai": "grok",
-        }
-
-        return aliases.get(normalized_name, normalized_name)
+        return cls.PROVIDER_ALIASES.get(
+            normalized_name,
+            normalized_name,
+        )
 
     @classmethod
     def _create_openai_provider(
         cls,
         **overrides: Any,
     ) -> BaseAIProvider:
-        """Create the working OpenAI provider."""
+        """Create the OpenAI engineering research provider."""
 
         from ai_engine.providers.openai import OpenAIProvider
 
@@ -174,13 +232,13 @@ class ProviderFactory:
         cls,
         **overrides: Any,
     ) -> BaseAIProvider:
-        """Create Gemini provider after its adapter is implemented."""
+        """Create the Google Gemini engineering research provider."""
 
         try:
             from ai_engine.providers.gemini import GeminiProvider
         except (ImportError, AttributeError) as error:
             raise ProviderNotImplementedError(
-                "Gemini provider is not implemented yet."
+                "Gemini provider adapter could not be imported."
             ) from error
 
         api_key = cls._get_required_value(
@@ -191,8 +249,8 @@ class ProviderFactory:
 
         model = cls._get_value(
             override_value=overrides.get("model"),
-            environment_key="GEMINI_MODEL",
-            default="gemini-2.5-flash",
+            environment_key="GEMINI_ANALYSIS_MODEL",
+            default="gemini-2.5-pro",
         )
 
         timeout_seconds = cls._get_integer_value(
@@ -221,9 +279,7 @@ class ProviderFactory:
         cls,
         **overrides: Any,
     ) -> BaseAIProvider:
-        """
-        Create the Anthropic Claude provider.
-        """
+        """Create the Anthropic Claude engineering research provider."""
 
         from ai_engine.providers.claude import ClaudeProvider
 
@@ -265,7 +321,7 @@ class ProviderFactory:
         cls,
         **overrides: Any,
     ) -> BaseAIProvider:
-        """Create the xAI Grok provider."""
+        """Create the xAI Grok engineering research provider."""
 
         from ai_engine.providers.grok import GrokProvider
 
@@ -308,8 +364,11 @@ class ProviderFactory:
             max_output_tokens=max_output_tokens,
             base_url=base_url,
         )
+
     @staticmethod
-    def _get_environment_value(environment_key: str) -> str | None:
+    def _get_environment_value(
+        environment_key: str,
+    ) -> str | None:
         """Read and clean an environment variable."""
 
         value = os.getenv(environment_key)
@@ -329,9 +388,13 @@ class ProviderFactory:
         environment_key: str,
         provider_name: str,
     ) -> str:
-        """Return a required configuration value."""
+        """Return a required string configuration value."""
 
-        value = override_value or cls._get_environment_value(environment_key)
+        value = (
+            override_value
+            if override_value is not None
+            else cls._get_environment_value(environment_key)
+        )
 
         if not isinstance(value, str) or not value.strip():
             raise ProviderConfigurationError(
@@ -353,9 +416,12 @@ class ProviderFactory:
 
         value = (
             override_value
-            or cls._get_environment_value(environment_key)
-            or default
+            if override_value is not None
+            else cls._get_environment_value(environment_key)
         )
+
+        if value is None:
+            value = default
 
         if not isinstance(value, str) or not value.strip():
             raise ProviderConfigurationError(
@@ -397,4 +463,3 @@ class ProviderFactory:
             )
 
         return parsed_value
-    
