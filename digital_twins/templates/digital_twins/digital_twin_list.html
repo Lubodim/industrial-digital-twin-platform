@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ page_title }}</title>
+</head>
+<body>
+
+<h1>{{ page_title }}</h1>
+
+<form method="get">
+    {{ filter_form.as_p }}
+    <button type="submit">
+        Search
+    </button>
+</form>
+
+<p>Total twins: {{ statistics.total_count }}</p>
+
+<ul>
+{% for twin in digital_twins %}
+    <li>
+        <a href="{% url 'digital_twins:detail' twin.pk %}">
+            {{ twin.name }}
+        </a>
+    </li>
+{% empty %}
+    <li>No Digital Twins.</li>
+{% endfor %}
+</ul>
+
+</body>
+</html>
