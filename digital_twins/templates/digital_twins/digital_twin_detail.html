@@ -1,0 +1,1372 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    {{ digital_twin.part_number }} – {{ digital_twin.name }}
+    | Industrial Digital Twin Platform
+{% endblock %}
+
+
+{% block content %}
+    <section class="page-header">
+        <div>
+            <div class="page-actions margin-bottom">
+                {% if digital_twin.is_active %}
+                    <span class="badge badge-success">
+                        Активен
+                    </span>
+                {% else %}
+                    <span class="badge">
+                        Неактивен
+                    </span>
+                {% endif %}
+
+                <span class="badge">
+                    {{ digital_twin.part_number }}
+                </span>
+            </div>
+
+            <h1>
+                {{ digital_twin.name }}
+            </h1>
+
+            <p class="page-description">
+                Подробна инженерна, производствена и икономическа
+                информация за цифровия двойник.
+            </p>
+        </div>
+
+        <div class="page-actions">
+            <a
+                href="{% url 'digital_twins:list' %}"
+                class="button button-secondary"
+            >
+                Назад към списъка
+            </a>
+
+            <a
+                href="{% url 'digital_twins:update' digital_twin.pk %}"
+                class="button button-primary"
+            >
+                Редактиране
+            </a>
+
+            {% if digital_twin.is_active %}
+                <form
+                    method="post"
+                    action="{% url 'digital_twins:deactivate' digital_twin.pk %}"
+                >
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="button button-warning"
+                    >
+                        Деактивиране
+                    </button>
+                </form>
+            {% else %}
+                <form
+                    method="post"
+                    action="{% url 'digital_twins:activate' digital_twin.pk %}"
+                >
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="button button-success"
+                    >
+                        Активиране
+                    </button>
+                </form>
+            {% endif %}
+
+            <a
+                href="{% url 'digital_twins:delete' digital_twin.pk %}"
+                class="button button-danger"
+            >
+                Изтриване
+            </a>
+        </div>
+    </section>
+
+
+    <section
+        class="grid grid-four-columns margin-bottom"
+        aria-label="Обобщена информация"
+    >
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Маса
+            </span>
+
+            <strong class="statistic-value">
+                {% if digital_twin.mass_kg != None %}
+                    {{ digital_twin.mass_kg }}
+                {% else %}
+                    —
+                {% endif %}
+            </strong>
+
+            <span class="statistic-description">
+                kg
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Производствено време
+            </span>
+
+            <strong class="statistic-value">
+                {% if digital_twin.production_time_minutes != None %}
+                    {{ digital_twin.production_time_minutes }}
+                {% else %}
+                    —
+                {% endif %}
+            </strong>
+
+            <span class="statistic-description">
+                min
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Процент брак
+            </span>
+
+            <strong class="statistic-value">
+                {% if digital_twin.defect_rate_percent != None %}
+                    {{ digital_twin.defect_rate_percent }}
+                {% else %}
+                    —
+                {% endif %}
+            </strong>
+
+            <span class="statistic-description">
+                %
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Марж на печалба
+            </span>
+
+            <strong class="statistic-value">
+                {% if digital_twin.desired_profit_margin_percent != None %}
+                    {{ digital_twin.desired_profit_margin_percent }}
+                {% else %}
+                    —
+                {% endif %}
+            </strong>
+
+            <span class="statistic-description">
+                %
+            </span>
+        </article>
+    </section>
+
+
+    <div class="grid grid-two-columns margin-bottom">
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>
+                        Основна информация
+                    </h2>
+
+                    <span class="text-muted">
+                        Идентификация и описание на изделието
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <dl class="definition-list">
+                    <dt>
+                        Наименование
+                    </dt>
+
+                    <dd>
+                        {{ digital_twin.name }}
+                    </dd>
+
+                    <dt>
+                        Номер на изделието
+                    </dt>
+
+                    <dd>
+                        {{ digital_twin.part_number }}
+                    </dd>
+
+                    <dt>
+                        Статус
+                    </dt>
+
+                    <dd>
+                        {% if digital_twin.is_active %}
+                            <span class="badge badge-success">
+                                Активен
+                            </span>
+                        {% else %}
+                            <span class="badge">
+                                Неактивен
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>
+                        Създаден от
+                    </dt>
+
+                    <dd>
+                        {% if digital_twin.created_by %}
+                            {{ digital_twin.created_by.get_full_name|default:digital_twin.created_by.get_username }}
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>
+                        Създаден на
+                    </dt>
+
+                    <dd>
+                        {{ digital_twin.created_at|date:"d.m.Y H:i" }}
+                    </dd>
+
+                    <dt>
+                        Последна промяна
+                    </dt>
+
+                    <dd>
+                        {{ digital_twin.updated_at|date:"d.m.Y H:i" }}
+                    </dd>
+                </dl>
+            </div>
+        </section>
+
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>
+                        Описание
+                    </h2>
+
+                    <span class="text-muted">
+                        Функционално и инженерно предназначение
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if digital_twin.description %}
+                    <p>
+                        {{ digital_twin.description|linebreaksbr }}
+                    </p>
+                {% else %}
+                    <div class="empty-state">
+                        <h3>
+                            Няма добавено описание
+                        </h3>
+
+                        <p>
+                            Подробно описание може да бъде добавено
+                            чрез редактиране на цифровия двойник.
+                        </p>
+
+                        <a
+                            href="{% url 'digital_twins:update' digital_twin.pk %}"
+                            class="button button-secondary"
+                        >
+                            Добави описание
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+
+    <div class="grid grid-two-columns margin-bottom">
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>
+                        Материал
+                    </h2>
+
+                    <span class="text-muted">
+                        Материални характеристики на изделието
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if digital_twin.material %}
+                    <dl class="definition-list">
+                        <dt>
+                            Наименование
+                        </dt>
+
+                        <dd>
+                            {{ digital_twin.material.name }}
+                        </dd>
+
+                        <dt>
+                            Код
+                        </dt>
+
+                        <dd>
+                            {% if digital_twin.material.code %}
+                                {{ digital_twin.material.code }}
+                            {% else %}
+                                <span class="text-muted">
+                                    Няма данни
+                                </span>
+                            {% endif %}
+                        </dd>
+
+                        <dt>
+                            Плътност
+                        </dt>
+
+                        <dd>
+                            {% if digital_twin.material.density_kg_m3 != None %}
+                                {{ digital_twin.material.density_kg_m3 }}
+                                kg/m³
+                            {% else %}
+                                <span class="text-muted">
+                                    Няма данни
+                                </span>
+                            {% endif %}
+                        </dd>
+
+                        <dt>
+                            Цена на килограм
+                        </dt>
+
+                        <dd>
+                            {% if digital_twin.material.price_per_kg != None %}
+                                {{ digital_twin.material.price_per_kg }}
+                            {% else %}
+                                <span class="text-muted">
+                                    Няма данни
+                                </span>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                {% else %}
+                    <div class="empty-state">
+                        <h3>
+                            Не е избран материал
+                        </h3>
+
+                        <p>
+                            Материалът е необходим за пълен инженерен
+                            и икономически анализ.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>
+                        Технология
+                    </h2>
+
+                    <span class="text-muted">
+                        Производствен процес на изделието
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if digital_twin.technology %}
+                    <dl class="definition-list">
+                        <dt>
+                            Наименование
+                        </dt>
+
+                        <dd>
+                            {{ digital_twin.technology.name }}
+                        </dd>
+
+                        <dt>
+                            Код
+                        </dt>
+
+                        <dd>
+                            {% if digital_twin.technology.code %}
+                                {{ digital_twin.technology.code }}
+                            {% else %}
+                                <span class="text-muted">
+                                    Няма данни
+                                </span>
+                            {% endif %}
+                        </dd>
+
+                        <dt>
+                            Машинна ставка
+                        </dt>
+
+                        <dd>
+                            {% if digital_twin.technology.machine_hour_rate != None %}
+                                {{ digital_twin.technology.machine_hour_rate }}
+                            {% else %}
+                                <span class="text-muted">
+                                    Няма данни
+                                </span>
+                            {% endif %}
+                        </dd>
+
+                        <dt>
+                            Активна
+                        </dt>
+
+                        <dd>
+                            {% if digital_twin.technology.is_active %}
+                                <span class="badge badge-success">
+                                    Да
+                                </span>
+                            {% else %}
+                                <span class="badge">
+                                    Не
+                                </span>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                {% else %}
+                    <div class="empty-state">
+                        <h3>
+                            Не е избрана технология
+                        </h3>
+
+                        <p>
+                            Производствената технология е необходима
+                            за изчисляване на машинните разходи.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+
+    <div class="grid grid-two-columns margin-bottom">
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>
+                        Инженерни параметри
+                    </h2>
+
+                    <span class="text-muted">
+                        Физични и производствени характеристики
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <dl class="definition-list">
+                    <dt>
+                        Обем
+                    </dt>
+
+                    <dd>
+                        {% if digital_twin.volume_m3 != None %}
+                            {{ digital_twin.volume_m3 }} m³
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>
+                        Маса
+                    </dt>
+
+                    <dd>
+                        {% if digital_twin.mass_kg != None %}
+                            {{ digital_twin.mass_kg }} kg
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>
+                        Производствено време
+                    </dt>
+
+                    <dd>
+                        {% if digital_twin.production_time_minutes != None %}
+                            {{ digital_twin.production_time_minutes }}
+                            min
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>
+                        Процент брак
+                    </dt>
+
+                    <dd>
+                        {% if digital_twin.defect_rate_percent != None %}
+                            {{ digital_twin.defect_rate_percent }}%
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </section>
+
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>
+                        Икономически параметри
+                    </h2>
+
+                    <span class="text-muted">
+                        Базови разходи и планирана рентабилност
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <dl class="definition-list">
+                    <dt>
+                        Разход за труд
+                    </dt>
+
+                    <dd>
+                        {% if digital_twin.labor_cost != None %}
+                            {{ digital_twin.labor_cost }}
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>
+                        Разход за енергия
+                    </dt>
+
+                    <dd>
+                        {% if digital_twin.energy_cost != None %}
+                            {{ digital_twin.energy_cost }}
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>
+                        Желан марж на печалба
+                    </dt>
+
+                    <dd>
+                        {% if digital_twin.desired_profit_margin_percent != None %}
+                            {{ digital_twin.desired_profit_margin_percent }}%
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </section>
+    </div>
+
+
+    <section class="card margin-bottom">
+        <div class="card-header">
+            <div>
+                <h2>
+                    Изчислена себестойност
+                </h2>
+
+                <span class="text-muted">
+                    Автоматично изчислени икономически показатели
+                </span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            {% if cost_summary %}
+                <div class="grid grid-four-columns">
+                    {% for key, value in cost_summary.items %}
+                        <article class="statistic-card">
+                            <span class="statistic-label">
+                                {{ key|title }}
+                            </span>
+
+                            <strong class="statistic-value">
+                                {{ value }}
+                            </strong>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>
+                        Няма изчислена себестойност
+                    </h3>
+
+                    <p>
+                        Липсват достатъчно материални, технологични
+                        или икономически параметри.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+        <div class="grid grid-two-columns margin-bottom">
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>
+                        Изображение на изделието
+                    </h2>
+
+                    <span class="text-muted">
+                        Визуално представяне на цифровия двойник
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if digital_twin.image_file %}
+                    <div class="media-preview">
+                        <a
+                            href="{{ digital_twin.image_file.url }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <img
+                                src="{{ digital_twin.image_file.url }}"
+                                alt="{{ digital_twin.name }}"
+                                class="detail-image"
+                            >
+                        </a>
+                    </div>
+
+                    <div class="page-actions margin-top">
+                        <a
+                            href="{{ digital_twin.image_file.url }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="button button-secondary"
+                        >
+                            Отвори изображението
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <h3>
+                            Няма качено изображение
+                        </h3>
+
+                        <p>
+                            Към този цифров двойник все още няма
+                            добавено изображение на изделието.
+                        </p>
+
+                        <a
+                            href="{% url 'digital_twins:update' digital_twin.pk %}"
+                            class="button button-secondary"
+                        >
+                            Добави изображение
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>
+                        Основен CAD файл
+                    </h2>
+
+                    <span class="text-muted">
+                        Основен геометричен модел на изделието
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if digital_twin.cad_file %}
+                    <dl class="definition-list">
+                        <dt>
+                            Файл
+                        </dt>
+
+                        <dd>
+                            {{ digital_twin.cad_file.name }}
+                        </dd>
+
+                        <dt>
+                            Тип
+                        </dt>
+
+                        <dd>
+                            CAD модел
+                        </dd>
+
+                        <dt>
+                            Действие
+                        </dt>
+
+                        <dd>
+                            <a
+                                href="{{ digital_twin.cad_file.url }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="button button-secondary"
+                            >
+                                Отвори файла
+                            </a>
+                        </dd>
+                    </dl>
+                {% else %}
+                    <div class="empty-state">
+                        <h3>
+                            Няма основен CAD файл
+                        </h3>
+
+                        <p>
+                            Геометричният модел може да бъде добавен
+                            чрез редактиране на цифровия двойник.
+                        </p>
+
+                        <a
+                            href="{% url 'digital_twins:update' digital_twin.pk %}"
+                            class="button button-secondary"
+                        >
+                            Добави CAD файл
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+
+    <section class="card margin-bottom">
+        <div class="card-header">
+            <div>
+                <h2>
+                    Допълнителни файлове
+                </h2>
+
+                <span class="text-muted">
+                    CAD модели, чертежи, изображения и документи
+                </span>
+            </div>
+
+            <span class="badge">
+                {{ files|length }}
+            </span>
+        </div>
+
+        <div class="card-body">
+            {% if files %}
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    Тип
+                                </th>
+
+                                <th>
+                                    Файл
+                                </th>
+
+                                <th>
+                                    Описание
+                                </th>
+
+                                <th>
+                                    Качен от
+                                </th>
+
+                                <th>
+                                    Дата
+                                </th>
+
+                                <th>
+                                    Действие
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for twin_file in files %}
+                                <tr>
+                                    <td>
+                                        {% if twin_file.file_type == "CAD" %}
+                                            <span class="badge badge-info">
+                                                {{ twin_file.get_file_type_display }}
+                                            </span>
+                                        {% elif twin_file.file_type == "DRAWING" %}
+                                            <span class="badge badge-warning">
+                                                {{ twin_file.get_file_type_display }}
+                                            </span>
+                                        {% elif twin_file.file_type == "IMAGE" %}
+                                            <span class="badge badge-success">
+                                                {{ twin_file.get_file_type_display }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge">
+                                                {{ twin_file.get_file_type_display }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {{ twin_file.file.name }}
+                                    </td>
+
+                                    <td>
+                                        {% if twin_file.description %}
+                                            {{ twin_file.description }}
+                                        {% else %}
+                                            <span class="text-muted">
+                                                Няма описание
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if twin_file.uploaded_by %}
+                                            {{ twin_file.uploaded_by.get_full_name|default:twin_file.uploaded_by.get_username }}
+                                        {% else %}
+                                            <span class="text-muted">
+                                                Няма данни
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {{ twin_file.uploaded_at|date:"d.m.Y H:i" }}
+                                    </td>
+
+                                    <td>
+                                        <a
+                                            href="{{ twin_file.file.url }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="button button-secondary"
+                                        >
+                                            Отвори
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>
+                        Няма допълнителни файлове
+                    </h3>
+
+                    <p>
+                        Към цифровия двойник все още няма добавени
+                        допълнителни чертежи, документи или модели.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+
+    <section class="card margin-bottom">
+        <div class="card-header">
+            <div>
+                <h2>
+                    Експерименти върху цифровия двойник
+                </h2>
+
+                <span class="text-muted">
+                    Експерименти, при които този двойник е използван
+                    като изходно изделие
+                </span>
+            </div>
+
+            <span class="badge">
+                {{ source_experiments|length }}
+            </span>
+        </div>
+
+        <div class="card-body">
+            {% if source_experiments %}
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    Наименование
+                                </th>
+
+                                <th>
+                                    Цел
+                                </th>
+
+                                <th>
+                                    Статус
+                                </th>
+
+                                <th>
+                                    Създаден от
+                                </th>
+
+                                <th>
+                                    Създаден на
+                                </th>
+
+                                <th>
+                                    Действие
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for experiment in source_experiments %}
+                                <tr>
+                                    <td>
+                                        <strong>
+                                            {{ experiment.name }}
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        {% if experiment.objective %}
+                                            {{ experiment.objective|truncatechars:100 }}
+                                        {% else %}
+                                            <span class="text-muted">
+                                                Няма зададена цел
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if experiment.status == "DRAFT" %}
+                                            <span class="badge badge-warning">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% elif experiment.status == "CHATTING" %}
+                                            <span class="badge badge-info">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% elif experiment.status == "READY_FOR_ANALYSIS" %}
+                                            <span class="badge badge-info">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% elif experiment.status == "ANALYZING" %}
+                                            <span class="badge badge-warning">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% elif experiment.status == "PROPOSALS_READY" %}
+                                            <span class="badge badge-success">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% elif experiment.status == "PARTIALLY_APPROVED" %}
+                                            <span class="badge badge-warning">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% elif experiment.status == "APPROVED" %}
+                                            <span class="badge badge-success">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% elif experiment.status == "TWIN_CREATED" %}
+                                            <span class="badge badge-success">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% elif experiment.status == "COMPLETED" %}
+                                            <span class="badge badge-success">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% elif experiment.status == "FAILED" %}
+                                            <span class="badge badge-danger">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% else %}
+                                            <span class="badge">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if experiment.created_by %}
+                                            {{ experiment.created_by.get_full_name|default:experiment.created_by.get_username }}
+                                        {% else %}
+                                            <span class="text-muted">
+                                                Няма данни
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {{ experiment.created_at|date:"d.m.Y H:i" }}
+                                    </td>
+
+                                    <td>
+                                        <a
+                                            href="{% url 'experiments:detail' experiment.pk %}"
+                                            class="button button-secondary"
+                                        >
+                                            Отвори
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>
+                        Няма проведени експерименти
+                    </h3>
+
+                    <p>
+                        Този цифров двойник все още не е използван
+                        като основа за инженерен експеримент.
+                    </p>
+
+                    <a
+                        href="{% url 'experiments:create' %}"
+                        class="button button-primary"
+                    >
+                        Създай експеримент
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+
+    <section class="card margin-bottom">
+        <div class="card-header">
+            <div>
+                <h2>
+                    Експерименти, създали този двойник
+                </h2>
+
+                <span class="text-muted">
+                    История на експериментите, при които изделието
+                    е създадено като резултатен цифров двойник
+                </span>
+            </div>
+
+            <span class="badge">
+                {{ result_experiments|length }}
+            </span>
+        </div>
+
+        <div class="card-body">
+            {% if result_experiments %}
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    Експеримент
+                                </th>
+
+                                <th>
+                                    Изходен цифров двойник
+                                </th>
+
+                                <th>
+                                    Статус
+                                </th>
+
+                                <th>
+                                    Одобрен от
+                                </th>
+
+                                <th>
+                                    Завършен на
+                                </th>
+
+                                <th>
+                                    Действие
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for experiment in result_experiments %}
+                                <tr>
+                                    <td>
+                                        <strong>
+                                            {{ experiment.name }}
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        {% if experiment.digital_twin %}
+                                            <a
+                                                href="{% url 'digital_twins:detail' experiment.digital_twin.pk %}"
+                                            >
+                                                {{ experiment.digital_twin.part_number }}
+                                                –
+                                                {{ experiment.digital_twin.name }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">
+                                                Няма данни
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if experiment.status == "TWIN_CREATED" or experiment.status == "COMPLETED" %}
+                                            <span class="badge badge-success">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+                                        {% elif experiment.status == "FAILED" %}
+                                            <span class="badge badge-danger">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if experiment.approved_by %}
+                                            {{ experiment.approved_by.get_full_name|default:experiment.approved_by.get_username }}
+                                        {% else %}
+                                            <span class="text-muted">
+                                                Няма данни
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if experiment.completed_at %}
+                                            {{ experiment.completed_at|date:"d.m.Y H:i" }}
+                                        {% elif experiment.approved_at %}
+                                            {{ experiment.approved_at|date:"d.m.Y H:i" }}
+                                        {% else %}
+                                            <span class="text-muted">
+                                                Не е завършен
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        <a
+                                            href="{% url 'experiments:detail' experiment.pk %}"
+                                            class="button button-secondary"
+                                        >
+                                            Отвори
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>
+                        Няма изходен експеримент
+                    </h3>
+
+                    <p>
+                        Този цифров двойник не е създаден като резултат
+                        от друг инженерен експеримент.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+
+    <section class="card margin-bottom">
+        <div class="card-header">
+            <div>
+                <h2>
+                    История и отговорност
+                </h2>
+
+                <span class="text-muted">
+                    Данни за създаване и последна редакция
+                </span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <dl class="definition-list">
+                <dt>
+                    Създаден от
+                </dt>
+
+                <dd>
+                    {% if digital_twin.created_by %}
+                        {{ digital_twin.created_by.get_full_name|default:digital_twin.created_by.get_username }}
+                    {% else %}
+                        <span class="text-muted">
+                            Няма данни
+                        </span>
+                    {% endif %}
+                </dd>
+
+                <dt>
+                    Създаден на
+                </dt>
+
+                <dd>
+                    {{ digital_twin.created_at|date:"d.m.Y H:i:s" }}
+                </dd>
+
+                <dt>
+                    Последно редактиран от
+                </dt>
+
+                <dd>
+                    {% if digital_twin.updated_by %}
+                        {{ digital_twin.updated_by.get_full_name|default:digital_twin.updated_by.get_username }}
+                    {% else %}
+                        <span class="text-muted">
+                            Няма данни
+                        </span>
+                    {% endif %}
+                </dd>
+
+                <dt>
+                    Последна редакция
+                </dt>
+
+                <dd>
+                    {{ digital_twin.updated_at|date:"d.m.Y H:i:s" }}
+                </dd>
+
+                <dt>
+                    Уникален идентификатор
+                </dt>
+
+                <dd>
+                    <code>
+                        {{ digital_twin.pk }}
+                    </code>
+                </dd>
+            </dl>
+        </div>
+    </section>
+
+
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>
+                    Управление на цифровия двойник
+                </h2>
+
+                <span class="text-muted">
+                    Редактиране, промяна на статуса или изтриване
+                </span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="page-actions">
+                <a
+                    href="{% url 'digital_twins:update' digital_twin.pk %}"
+                    class="button button-primary"
+                >
+                    Редактиране
+                </a>
+
+                {% if digital_twin.is_active %}
+                    <form
+                        method="post"
+                        action="{% url 'digital_twins:deactivate' digital_twin.pk %}"
+                    >
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="button button-warning"
+                        >
+                            Деактивиране
+                        </button>
+                    </form>
+                {% else %}
+                    <form
+                        method="post"
+                        action="{% url 'digital_twins:activate' digital_twin.pk %}"
+                    >
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="button button-success"
+                        >
+                            Активиране
+                        </button>
+                    </form>
+                {% endif %}
+
+                <a
+                    href="{% url 'digital_twins:delete' digital_twin.pk %}"
+                    class="button button-danger"
+                >
+                    Изтриване
+                </a>
+
+                <a
+                    href="{% url 'digital_twins:list' %}"
+                    class="button button-secondary"
+                >
+                    Назад към списъка
+                </a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

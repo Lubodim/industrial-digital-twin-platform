@@ -1,200 +1,520 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
+{% extends "base.html" %}
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
 
-    <title>{{ page_title }}</title>
+{% block title %}
+    {% if is_update %}
+        Редактиране на цифров двойник
+    {% else %}
+        Създаване на цифров двойник
+    {% endif %}
+    | Industrial Digital Twin Platform
+{% endblock %}
 
-    <style>
-        body {
-            margin: 0;
-            padding: 30px;
-            background: #f4f6f8;
-            color: #222222;
-            font-family: Arial, sans-serif;
-        }
 
-        .page-container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
+{% block content %}
+    <section class="page-header">
+        <div>
+            <h1>
+                {% if is_update %}
+                    Редактиране на цифров двойник
+                {% else %}
+                    Нов цифров двойник
+                {% endif %}
+            </h1>
 
-        .form-card {
-            padding: 28px;
-            background: #ffffff;
-            border: 1px solid #dfe3e8;
-            border-radius: 10px;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
-        }
-
-        h1 {
-            margin-top: 0;
-        }
-
-        .form-group {
-            margin-bottom: 18px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            box-sizing: border-box;
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #c8ced6;
-            border-radius: 5px;
-            font: inherit;
-        }
-
-        .form-group input[type="checkbox"] {
-            width: auto;
-        }
-
-        .help-text {
-            margin-top: 5px;
-            color: #616b75;
-            font-size: 0.9rem;
-        }
-
-        .field-errors,
-        .form-errors {
-            margin: 6px 0;
-            padding: 10px;
-            color: #8b0000;
-            background: #ffecec;
-            border: 1px solid #e7abab;
-            border-radius: 5px;
-        }
-
-        .field-errors ul,
-        .form-errors ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-
-        .actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 25px;
-        }
-
-        .button {
-            display: inline-block;
-            padding: 10px 18px;
-            border: none;
-            border-radius: 5px;
-            text-decoration: none;
-            cursor: pointer;
-            font: inherit;
-        }
-
-        .button-primary {
-            color: #ffffff;
-            background: #175cd3;
-        }
-
-        .button-secondary {
-            color: #222222;
-            background: #e4e7ec;
-        }
-
-        .required-marker {
-            color: #b42318;
-        }
-    </style>
-</head>
-
-<body>
-<div class="page-container">
-
-    <div class="form-card">
-
-        <h1>{{ page_title }}</h1>
-
-        {% if digital_twin %}
-            <p>
-                Part number:
-                <strong>{{ digital_twin.part_number }}</strong>
+            <p class="page-description">
+                {% if is_update %}
+                    Промяна на основните, инженерните и икономическите
+                    параметри на изделието.
+                {% else %}
+                    Добавяне на нов производствен обект в библиотеката
+                    с цифрови двойници.
+                {% endif %}
             </p>
+        </div>
+
+        <div class="page-actions">
+            <a
+                href="{{ cancel_url }}"
+                class="button button-secondary"
+            >
+                Отказ
+            </a>
+        </div>
+    </section>
+
+
+    <form
+        method="post"
+        enctype="multipart/form-data"
+        novalidate
+    >
+        {% csrf_token %}
+
+        {% for hidden_field in form.hidden_fields %}
+            {{ hidden_field }}
+        {% endfor %}
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger margin-bottom">
+                <div>
+                    <strong>
+                        Формата съдържа грешки.
+                    </strong>
+
+                    <div class="form-errors">
+                        {{ form.non_field_errors }}
+                    </div>
+                </div>
+            </div>
         {% endif %}
 
-        <form
-            method="post"
-            enctype="multipart/form-data"
-            novalidate
-        >
-            {% csrf_token %}
 
-            {% if form.non_field_errors %}
-                <div class="form-errors">
-                    {{ form.non_field_errors }}
+        <div class="grid grid-two-columns margin-bottom">
+            <section class="card">
+                <div class="card-header">
+                    <div>
+                        <h2>Основна информация</h2>
+
+                        <span class="text-muted">
+                            Идентификация и описание на изделието
+                        </span>
+                    </div>
                 </div>
-            {% endif %}
 
-            {% for hidden_field in form.hidden_fields %}
-                {{ hidden_field }}
-            {% endfor %}
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="{{ form.name.id_for_label }}">
+                            {{ form.name.label }}
 
-            {% for field in form.visible_fields %}
-                <div class="form-group">
+                            {% if form.name.field.required %}
+                                <span aria-hidden="true">*</span>
+                            {% endif %}
+                        </label>
 
-                    <label for="{{ field.id_for_label }}">
-                        {{ field.label }}
+                        {{ form.name }}
 
-                        {% if field.field.required %}
-                            <span class="required-marker">*</span>
+                        {% if form.name.help_text %}
+                            <small class="help-text">
+                                {{ form.name.help_text }}
+                            </small>
                         {% endif %}
-                    </label>
 
-                    {{ field }}
+                        {% if form.name.errors %}
+                            <div class="field-errors">
+                                {{ form.name.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
 
-                    {% if field.help_text %}
-                        <div class="help-text">
-                            {{ field.help_text }}
-                        </div>
-                    {% endif %}
 
-                    {% if field.errors %}
-                        <div class="field-errors">
-                            {{ field.errors }}
-                        </div>
-                    {% endif %}
+                    <div class="form-group">
+                        <label for="{{ form.part_number.id_for_label }}">
+                            {{ form.part_number.label }}
 
+                            {% if form.part_number.field.required %}
+                                <span aria-hidden="true">*</span>
+                            {% endif %}
+                        </label>
+
+                        {{ form.part_number }}
+
+                        {% if form.part_number.help_text %}
+                            <small class="help-text">
+                                {{ form.part_number.help_text }}
+                            </small>
+                        {% endif %}
+
+                        {% if form.part_number.errors %}
+                            <div class="field-errors">
+                                {{ form.part_number.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="{{ form.description.id_for_label }}">
+                            {{ form.description.label }}
+                        </label>
+
+                        {{ form.description }}
+
+                        {% if form.description.help_text %}
+                            <small class="help-text">
+                                {{ form.description.help_text }}
+                            </small>
+                        {% endif %}
+
+                        {% if form.description.errors %}
+                            <div class="field-errors">
+                                {{ form.description.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="{{ form.material.id_for_label }}">
+                            {{ form.material.label }}
+
+                            {% if form.material.field.required %}
+                                <span aria-hidden="true">*</span>
+                            {% endif %}
+                        </label>
+
+                        {{ form.material }}
+
+                        {% if form.material.help_text %}
+                            <small class="help-text">
+                                {{ form.material.help_text }}
+                            </small>
+                        {% endif %}
+
+                        {% if form.material.errors %}
+                            <div class="field-errors">
+                                {{ form.material.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="{{ form.technology.id_for_label }}">
+                            {{ form.technology.label }}
+
+                            {% if form.technology.field.required %}
+                                <span aria-hidden="true">*</span>
+                            {% endif %}
+                        </label>
+
+                        {{ form.technology }}
+
+                        {% if form.technology.help_text %}
+                            <small class="help-text">
+                                {{ form.technology.help_text }}
+                            </small>
+                        {% endif %}
+
+                        {% if form.technology.errors %}
+                            <div class="field-errors">
+                                {{ form.technology.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
-            {% endfor %}
+            </section>
 
-            <div class="actions">
 
-                <button
-                    class="button button-primary"
-                    type="submit"
-                >
-                    {{ submit_label }}
-                </button>
+            <section class="card">
+                <div class="card-header">
+                    <div>
+                        <h2>Файлове на изделието</h2>
 
-                <a
-                    class="button button-secondary"
-                    href="{{ cancel_url }}"
-                >
-                    Cancel
-                </a>
+                        <span class="text-muted">
+                            CAD модел и визуално представяне
+                        </span>
+                    </div>
+                </div>
 
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="{{ form.cad_file.id_for_label }}">
+                            {{ form.cad_file.label }}
+                        </label>
+
+                        {{ form.cad_file }}
+
+                        {% if form.cad_file.help_text %}
+                            <small class="help-text">
+                                {{ form.cad_file.help_text }}
+                            </small>
+                        {% else %}
+                            <small class="help-text">
+                                Поддържани формати: STEP, STP, IGES, IGS,
+                                STL, OBJ, DXF, DWG и ZIP.
+                            </small>
+                        {% endif %}
+
+                        {% if form.cad_file.errors %}
+                            <div class="field-errors">
+                                {{ form.cad_file.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="{{ form.image_file.id_for_label }}">
+                            {{ form.image_file.label }}
+                        </label>
+
+                        {{ form.image_file }}
+
+                        {% if form.image_file.help_text %}
+                            <small class="help-text">
+                                {{ form.image_file.help_text }}
+                            </small>
+                        {% else %}
+                            <small class="help-text">
+                                Препоръчва се ясно изображение на изделието
+                                във формат PNG, JPG или WEBP.
+                            </small>
+                        {% endif %}
+
+                        {% if form.image_file.errors %}
+                            <div class="field-errors">
+                                {{ form.image_file.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+
+                    {% if is_update and digital_twin %}
+                        <div class="alert alert-info">
+                            <span>
+                                При качване на нов файл съществуващият
+                                файл ще бъде заменен.
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+
+
+        <div class="grid grid-two-columns margin-bottom">
+            <section class="card">
+                <div class="card-header">
+                    <div>
+                        <h2>Инженерни параметри</h2>
+
+                        <span class="text-muted">
+                            Геометрични и производствени характеристики
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="grid grid-two-columns">
+                        <div class="form-group">
+                            <label for="{{ form.volume_m3.id_for_label }}">
+                                {{ form.volume_m3.label }}
+                            </label>
+
+                            {{ form.volume_m3 }}
+
+                            {% if form.volume_m3.help_text %}
+                                <small class="help-text">
+                                    {{ form.volume_m3.help_text }}
+                                </small>
+                            {% endif %}
+
+                            {% if form.volume_m3.errors %}
+                                <div class="field-errors">
+                                    {{ form.volume_m3.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+
+                        <div class="form-group">
+                            <label for="{{ form.mass_kg.id_for_label }}">
+                                {{ form.mass_kg.label }}
+                            </label>
+
+                            {{ form.mass_kg }}
+
+                            {% if form.mass_kg.help_text %}
+                                <small class="help-text">
+                                    {{ form.mass_kg.help_text }}
+                                </small>
+                            {% endif %}
+
+                            {% if form.mass_kg.errors %}
+                                <div class="field-errors">
+                                    {{ form.mass_kg.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="{{ form.production_time_minutes.id_for_label }}">
+                            {{ form.production_time_minutes.label }}
+                        </label>
+
+                        {{ form.production_time_minutes }}
+
+                        {% if form.production_time_minutes.help_text %}
+                            <small class="help-text">
+                                {{ form.production_time_minutes.help_text }}
+                            </small>
+                        {% endif %}
+
+                        {% if form.production_time_minutes.errors %}
+                            <div class="field-errors">
+                                {{ form.production_time_minutes.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="{{ form.defect_rate_percent.id_for_label }}">
+                            {{ form.defect_rate_percent.label }}
+                        </label>
+
+                        {{ form.defect_rate_percent }}
+
+                        {% if form.defect_rate_percent.help_text %}
+                            <small class="help-text">
+                                {{ form.defect_rate_percent.help_text }}
+                            </small>
+                        {% endif %}
+
+                        {% if form.defect_rate_percent.errors %}
+                            <div class="field-errors">
+                                {{ form.defect_rate_percent.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+
+            <section class="card">
+                <div class="card-header">
+                    <div>
+                        <h2>Икономически параметри</h2>
+
+                        <span class="text-muted">
+                            Разходи и целева рентабилност
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="grid grid-two-columns">
+                        <div class="form-group">
+                            <label for="{{ form.labor_cost.id_for_label }}">
+                                {{ form.labor_cost.label }}
+                            </label>
+
+                            {{ form.labor_cost }}
+
+                            {% if form.labor_cost.help_text %}
+                                <small class="help-text">
+                                    {{ form.labor_cost.help_text }}
+                                </small>
+                            {% endif %}
+
+                            {% if form.labor_cost.errors %}
+                                <div class="field-errors">
+                                    {{ form.labor_cost.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+
+                        <div class="form-group">
+                            <label for="{{ form.energy_cost.id_for_label }}">
+                                {{ form.energy_cost.label }}
+                            </label>
+
+                            {{ form.energy_cost }}
+
+                            {% if form.energy_cost.help_text %}
+                                <small class="help-text">
+                                    {{ form.energy_cost.help_text }}
+                                </small>
+                            {% endif %}
+
+                            {% if form.energy_cost.errors %}
+                                <div class="field-errors">
+                                    {{ form.energy_cost.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="{{ form.desired_profit_margin_percent.id_for_label }}">
+                            {{ form.desired_profit_margin_percent.label }}
+                        </label>
+
+                        {{ form.desired_profit_margin_percent }}
+
+                        {% if form.desired_profit_margin_percent.help_text %}
+                            <small class="help-text">
+                                {{ form.desired_profit_margin_percent.help_text }}
+                            </small>
+                        {% endif %}
+
+                        {% if form.desired_profit_margin_percent.errors %}
+                            <div class="field-errors">
+                                {{ form.desired_profit_margin_percent.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="{{ form.is_active.id_for_label }}">
+                            Статус на цифровия двойник
+                        </label>
+
+                        <div class="page-actions">
+                            {{ form.is_active }}
+
+                            <label
+                                for="{{ form.is_active.id_for_label }}"
+                                style="margin-bottom: 0;"
+                            >
+                                {{ form.is_active.label }}
+                            </label>
+                        </div>
+
+                        <small class="help-text">
+                            Само активни цифрови двойници могат да бъдат
+                            използвани при създаване на нов експеримент.
+                        </small>
+
+                        {% if form.is_active.errors %}
+                            <div class="field-errors">
+                                {{ form.is_active.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+        </div>
+
+
+        <section class="card">
+            <div class="card-footer">
+                <div class="page-actions">
+                    <button
+                        type="submit"
+                        class="button button-primary"
+                    >
+                        {% if is_update %}
+                            Запази промените
+                        {% else %}
+                            Създай цифров двойник
+                        {% endif %}
+                    </button>
+
+                    <a
+                        href="{{ cancel_url }}"
+                        class="button button-secondary"
+                    >
+                        Отказ
+                    </a>
+                </div>
             </div>
-        </form>
-
-    </div>
-
-</div>
-</body>
-</html>
+        </section>
+    </form>
+{% endblock %}

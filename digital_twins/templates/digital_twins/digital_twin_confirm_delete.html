@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}
+Delete Digital Twin | Industrial Digital Twin Platform
+{% endblock %}
+
+{% block content %}
+
+<section class="page-header">
+    <div>
+        <h1>
+            Изтриване на цифров двойник
+        </h1>
+
+        <p class="page-description">
+            Това действие ще премахне цифровия двойник от системата.
+            Операцията е необратима.
+        </p>
+    </div>
+</section>
+
+<section class="card">
+
+    <div class="card-header">
+        <div>
+            <h2>
+                Потвърждение
+            </h2>
+
+            <span class="text-muted">
+                Проверете информацията преди изтриване.
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body">
+
+        <dl class="definition-list">
+
+            <dt>
+                Наименование
+            </dt>
+
+            <dd>
+                {{ digital_twin.name }}
+            </dd>
+
+            <dt>
+                Номер
+            </dt>
+
+            <dd>
+                {{ digital_twin.part_number }}
+            </dd>
+
+            <dt>
+                Материал
+            </dt>
+
+            <dd>
+                {% if digital_twin.material %}
+                    {{ digital_twin.material.name }}
+                {% else %}
+                    —
+                {% endif %}
+            </dd>
+
+            <dt>
+                Технология
+            </dt>
+
+            <dd>
+                {% if digital_twin.technology %}
+                    {{ digital_twin.technology.name }}
+                {% else %}
+                    —
+                {% endif %}
+            </dd>
+
+        </dl>
+
+        <div class="alert alert-danger margin-top">
+
+            <strong>
+                Внимание!
+            </strong>
+
+            Изтриването е окончателно и не може да бъде отменено.
+
+        </div>
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <div class="form-check margin-top margin-bottom">
+
+                {{ form.confirmation }}
+
+                <label
+                    class="form-check-label"
+                    for="{{ form.confirmation.id_for_label }}"
+                >
+                    Потвърждавам, че желая цифровият двойник да бъде изтрит.
+                </label>
+
+            </div>
+
+            {% if form.confirmation.errors %}
+                <div class="form-errors">
+                    {{ form.confirmation.errors }}
+                </div>
+            {% endif %}
+
+            {% if form.non_field_errors %}
+                <div class="form-errors">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="page-actions">
+
+                <button
+                    type="submit"
+                    class="button button-danger"
+                >
+                    Изтрий окончателно
+                </button>
+
+                <a
+                    href="{{ cancel_url }}"
+                    class="button button-secondary"
+                >
+                    Отказ
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</section>
+
+{% endblock %}
+
