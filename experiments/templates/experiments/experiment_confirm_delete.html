@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}
+Изтриване на експеримент | Industrial Digital Twin Platform
+{% endblock %}
+
+{% block content %}
+
+<section class="page-header">
+
+    <div>
+
+        <h1>Изтриване на експеримент</h1>
+
+        <p class="page-description">
+
+            Това действие е необратимо.
+
+        </p>
+
+    </div>
+
+</section>
+
+
+<section class="card">
+
+    <div class="card-header">
+
+        <h2>
+
+            Потвърждение
+
+        </h2>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="alert alert-danger">
+
+            <span>
+
+                Наистина ли желаете да изтриете експеримента
+
+                <strong>
+
+                    "{{ experiment.name }}"
+
+                </strong>
+
+                ?
+
+            </span>
+
+        </div>
+
+        <dl class="definition-list">
+
+            <dt>Цифров двойник</dt>
+
+            <dd>
+
+                {{ experiment.digital_twin.name }}
+
+            </dd>
+
+            <dt>Статус</dt>
+
+            <dd>
+
+                {{ experiment.get_status_display }}
+
+            </dd>
+
+            <dt>Създаден</dt>
+
+            <dd>
+
+                {{ experiment.created_at|date:"d.m.Y H:i" }}
+
+            </dd>
+
+            <dt>Автор</dt>
+
+            <dd>
+
+                {% if experiment.created_by %}
+
+                    {{ experiment.created_by.get_full_name|default:experiment.created_by.username }}
+
+                {% else %}
+
+                    —
+
+                {% endif %}
+
+            </dd>
+
+        </dl>
+
+    </div>
+
+    <div class="card-footer">
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            {{ form }}
+
+            <div class="page-actions">
+
+                <button
+                    type="submit"
+                    class="button button-danger"
+                >
+
+                    Изтрий окончателно
+
+                </button>
+
+                <a
+                    href="{{ cancel_url }}"
+                    class="button button-secondary"
+                >
+
+                    Отказ
+
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</section>
+
+{% endblock %}

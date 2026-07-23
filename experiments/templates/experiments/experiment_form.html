@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ page_title }} | Industrial Digital Twin Platform
+{% endblock %}
+
+{% block content %}
+
+<section class="page-header">
+
+    <div>
+
+        <h1>{{ page_title }}</h1>
+
+        <p class="page-description">
+
+            {% if is_update %}
+                Редактиране на параметрите на инженерния експеримент.
+            {% else %}
+                Създаване на нов инженерeн експеримент върху цифров двойник.
+            {% endif %}
+
+        </p>
+
+    </div>
+
+</section>
+
+
+<form method="post">
+
+    {% csrf_token %}
+
+    <div class="grid grid-two-columns">
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <h2>Основна информация</h2>
+
+            </div>
+
+            <div class="card-body">
+
+                {% for field in form %}
+
+                    <div class="form-group">
+
+                        <label for="{{ field.id_for_label }}">
+
+                            {{ field.label }}
+
+                        </label>
+
+                        {{ field }}
+
+                        {% if field.help_text %}
+                            <small class="help-text">
+
+                                {{ field.help_text }}
+
+                            </small>
+                        {% endif %}
+
+                        {% if field.errors %}
+                            <div class="field-errors">
+
+                                {{ field.errors }}
+
+                            </div>
+                        {% endif %}
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </section>
+
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <h2>Информация</h2>
+
+            </div>
+
+            <div class="card-body">
+
+                <dl class="definition-list">
+
+                    <dt>Цел</dt>
+
+                    <dd>
+
+                        Определяне на параметрите за инженерния анализ.
+
+                    </dd>
+
+                    <dt>AI анализ</dt>
+
+                    <dd>
+
+                        След записване ще бъде възможно
+                        стартиране на AI анализ.
+
+                    </dd>
+
+                    <dt>Предложения</dt>
+
+                    <dd>
+
+                        Генерираните предложения ще се
+                        визуализират след приключване
+                        на анализа.
+
+                    </dd>
+
+                    <dt>Резултат</dt>
+
+                    <dd>
+
+                        След одобрение ще бъде създаден
+                        нов цифров двойник.
+
+                    </dd>
+
+                </dl>
+
+            </div>
+
+        </section>
+
+    </div>
+
+
+    <div class="card margin-top">
+
+        <div class="card-footer">
+
+            <div class="page-actions">
+
+                <button
+                    type="submit"
+                    class="button button-primary"
+                >
+
+                    {{ submit_label }}
+
+                </button>
+
+                <a
+                    href="{{ cancel_url }}"
+                    class="button button-secondary"
+                >
+
+                    Отказ
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</form>
+
+{% endblock %}

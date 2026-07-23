@@ -1,0 +1,980 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    {{ experiment.name }} | Industrial Digital Twin Platform
+{% endblock %}
+
+
+{% block content %}
+    <section class="page-header">
+        <div>
+            <div class="page-actions margin-bottom">
+                {% if experiment.status == "DRAFT" %}
+                    <span class="badge badge-warning">
+                        {{ experiment.get_status_display }}
+                    </span>
+
+                {% elif experiment.status == "CHATTING" %}
+                    <span class="badge badge-info">
+                        {{ experiment.get_status_display }}
+                    </span>
+
+                {% elif experiment.status == "READY_FOR_ANALYSIS" %}
+                    <span class="badge badge-info">
+                        {{ experiment.get_status_display }}
+                    </span>
+
+                {% elif experiment.status == "ANALYZING" %}
+                    <span class="badge badge-warning">
+                        {{ experiment.get_status_display }}
+                    </span>
+
+                {% elif experiment.status == "PROPOSALS_READY" %}
+                    <span class="badge badge-success">
+                        {{ experiment.get_status_display }}
+                    </span>
+
+                {% elif experiment.status == "PARTIALLY_APPROVED" %}
+                    <span class="badge badge-warning">
+                        {{ experiment.get_status_display }}
+                    </span>
+
+                {% elif experiment.status == "APPROVED" %}
+                    <span class="badge badge-success">
+                        {{ experiment.get_status_display }}
+                    </span>
+
+                {% elif experiment.status == "TWIN_CREATED" %}
+                    <span class="badge badge-success">
+                        {{ experiment.get_status_display }}
+                    </span>
+
+                {% elif experiment.status == "COMPLETED" %}
+                    <span class="badge badge-success">
+                        {{ experiment.get_status_display }}
+                    </span>
+
+                {% elif experiment.status == "FAILED" %}
+                    <span class="badge badge-danger">
+                        {{ experiment.get_status_display }}
+                    </span>
+
+                {% else %}
+                    <span class="badge">
+                        {{ experiment.get_status_display }}
+                    </span>
+                {% endif %}
+
+                <span class="badge">
+                    ID: {{ experiment.pk }}
+                </span>
+            </div>
+
+            <h1>{{ experiment.name }}</h1>
+
+            <p class="page-description">
+                Инженерен експеримент върху цифров двойник
+                <strong>{{ experiment.digital_twin.name }}</strong>.
+            </p>
+        </div>
+
+        <div class="page-actions">
+            <a
+                href="{% url 'experiments:list' %}"
+                class="button button-secondary"
+            >
+                Назад към списъка
+            </a>
+
+            {% if can_update %}
+                <a
+                    href="{% url 'experiments:update' experiment.pk %}"
+                    class="button button-primary"
+                >
+                    Редактиране
+                </a>
+            {% endif %}
+
+            {% if can_archive %}
+                <form
+                    method="post"
+                    action="{% url 'experiments:archive' experiment.pk %}"
+                >
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="button button-warning"
+                    >
+                        Архивиране
+                    </button>
+                </form>
+            {% endif %}
+
+            {% if can_delete %}
+                <a
+                    href="{% url 'experiments:delete' experiment.pk %}"
+                    class="button button-danger"
+                >
+                    Изтриване
+                </a>
+            {% endif %}
+        </div>
+    </section>
+
+
+    <section
+        class="grid grid-four-columns margin-bottom"
+        aria-label="Обобщена информация"
+    >
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Съобщения
+            </span>
+
+            <strong class="statistic-value">
+                {{ experiment.message_count }}
+            </strong>
+
+            <span class="statistic-description">
+                Записи в инженерния разговор
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Предложения
+            </span>
+
+            <strong class="statistic-value">
+                {{ proposals|length }}
+            </strong>
+
+            <span class="statistic-description">
+                Генерирани инженерни промени
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Външни резултати
+            </span>
+
+            <strong class="statistic-value">
+                {% if experiment.external_results %}
+                    Да
+                {% else %}
+                    Не
+                {% endif %}
+            </strong>
+
+            <span class="statistic-description">
+                Данни от външни AI доставчици
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Локален анализ
+            </span>
+
+            <strong class="statistic-value">
+                {% if experiment.local_analysis %}
+                    Да
+                {% else %}
+                    Не
+                {% endif %}
+            </strong>
+
+            <span class="statistic-description">
+                Структуриран вътрешен анализ
+            </span>
+        </article>
+    </section>
+
+
+    <div class="grid grid-two-columns margin-bottom">
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>Основна информация</h2>
+
+                    <span class="text-muted">
+                        Идентификация и жизнен цикъл
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <dl class="definition-list">
+                    <dt>Наименование</dt>
+
+                    <dd>
+                        {{ experiment.name }}
+                    </dd>
+
+                    <dt>Статус</dt>
+
+                    <dd>
+                        {{ experiment.get_status_display }}
+                    </dd>
+
+                    <dt>Създаден от</dt>
+
+                    <dd>
+                        {% if experiment.created_by %}
+                            {{ experiment.created_by.get_full_name|default:experiment.created_by.get_username }}
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>Създаден на</dt>
+
+                    <dd>
+                        {{ experiment.created_at|date:"d.m.Y H:i" }}
+                    </dd>
+
+                    <dt>Последна промяна</dt>
+
+                    <dd>
+                        {{ experiment.updated_at|date:"d.m.Y H:i" }}
+                    </dd>
+
+                    <dt>IP адрес</dt>
+
+                    <dd>
+                        {% if experiment.ip_address %}
+                            {{ experiment.ip_address }}
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>Компютър</dt>
+
+                    <dd>
+                        {% if experiment.computer_name %}
+                            {{ experiment.computer_name }}
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </section>
+
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>Изходен цифров двойник</h2>
+
+                    <span class="text-muted">
+                        Обектът, върху който се извършва експериментът
+                    </span>
+                </div>
+
+                <a
+                    href="{% url 'digital_twins:detail' experiment.digital_twin.pk %}"
+                    class="button button-secondary button-small"
+                >
+                    Отвори двойника
+                </a>
+            </div>
+
+            <div class="card-body">
+                <dl class="definition-list">
+                    <dt>Наименование</dt>
+
+                    <dd>
+                        {{ experiment.digital_twin.name }}
+                    </dd>
+
+                    <dt>Каталожен номер</dt>
+
+                    <dd>
+                        {{ experiment.digital_twin.part_number }}
+                    </dd>
+
+                    <dt>Материал</dt>
+
+                    <dd>
+                        {% if experiment.digital_twin.material %}
+                            {{ experiment.digital_twin.material.name }}
+
+                            {% if experiment.digital_twin.material.code %}
+                                <span class="text-muted">
+                                    ({{ experiment.digital_twin.material.code }})
+                                </span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">
+                                Не е зададен
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>Технология</dt>
+
+                    <dd>
+                        {% if experiment.digital_twin.technology %}
+                            {{ experiment.digital_twin.technology.name }}
+
+                            {% if experiment.digital_twin.technology.code %}
+                                <span class="text-muted">
+                                    ({{ experiment.digital_twin.technology.code }})
+                                </span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">
+                                Не е зададена
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>Маса</dt>
+
+                    <dd>
+                        {% if experiment.digital_twin.mass_kg != None %}
+                            {{ experiment.digital_twin.mass_kg }} kg
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>Производствено време</dt>
+
+                    <dd>
+                        {% if experiment.digital_twin.production_time_minutes != None %}
+                            {{ experiment.digital_twin.production_time_minutes }}
+                            min
+                        {% else %}
+                            <span class="text-muted">
+                                Няма данни
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>Активен</dt>
+
+                    <dd>
+                        {% if experiment.digital_twin.is_active %}
+                            <span class="badge badge-success">
+                                Да
+                            </span>
+                        {% else %}
+                            <span class="badge">
+                                Не
+                            </span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </section>
+    </div>
+
+
+    <div class="grid grid-two-columns margin-bottom">
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>Цел на експеримента</h2>
+
+                    <span class="text-muted">
+                        Инженерният проблем, който трябва да бъде изследван
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if experiment.objective %}
+                    <p>
+                        {{ experiment.objective|linebreaksbr }}
+                    </p>
+                {% else %}
+                    <div class="empty-state">
+                        <h3>Няма зададена цел</h3>
+
+                        <p>
+                            Целта може да бъде добавена чрез редактиране
+                            на експеримента.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>Описание</h2>
+
+                    <span class="text-muted">
+                        Допълнителен контекст за експеримента
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if experiment.description %}
+                    <p>
+                        {{ experiment.description|linebreaksbr }}
+                    </p>
+                {% else %}
+                    <div class="empty-state">
+                        <h3>Няма допълнително описание</h3>
+
+                        <p>
+                            За този експеримент все още не е добавено
+                            подробно описание.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+
+    <section class="card margin-bottom">
+        <div class="card-header">
+            <div>
+                <h2>Жизнен цикъл на анализа</h2>
+
+                <span class="text-muted">
+                    Времеви данни за инженерния процес
+                </span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="grid grid-four-columns">
+                <article class="statistic-card">
+                    <span class="statistic-label">
+                        Анализ стартиран
+                    </span>
+
+                    <strong>
+                        {% if experiment.analysis_started_at %}
+                            {{ experiment.analysis_started_at|date:"d.m.Y H:i" }}
+                        {% else %}
+                            Не е стартиран
+                        {% endif %}
+                    </strong>
+                </article>
+
+                <article class="statistic-card">
+                    <span class="statistic-label">
+                        Анализ приключил
+                    </span>
+
+                    <strong>
+                        {% if experiment.analysis_completed_at %}
+                            {{ experiment.analysis_completed_at|date:"d.m.Y H:i" }}
+                        {% else %}
+                            Не е приключил
+                        {% endif %}
+                    </strong>
+                </article>
+
+                <article class="statistic-card">
+                    <span class="statistic-label">
+                        Одобрен
+                    </span>
+
+                    <strong>
+                        {% if experiment.approved_at %}
+                            {{ experiment.approved_at|date:"d.m.Y H:i" }}
+                        {% else %}
+                            Не е одобрен
+                        {% endif %}
+                    </strong>
+                </article>
+
+                <article class="statistic-card">
+                    <span class="statistic-label">
+                        Завършен
+                    </span>
+
+                    <strong>
+                        {% if experiment.completed_at %}
+                            {{ experiment.completed_at|date:"d.m.Y H:i" }}
+                        {% else %}
+                            Не е завършен
+                        {% endif %}
+                    </strong>
+                </article>
+            </div>
+        </div>
+    </section>
+
+
+    <section class="card margin-bottom">
+        <div class="card-header">
+            <div>
+                <h2>Инженерен разговор</h2>
+
+                <span class="text-muted">
+                    Въпроси на инженера и отговори от AI доставчиците
+                </span>
+            </div>
+
+            <span class="badge">
+                {{ chat_messages|length }} съобщения
+            </span>
+        </div>
+
+        <div class="card-body">
+            {% for chat_message in chat_messages %}
+                <article class="card margin-bottom">
+                    <div class="card-header">
+                        <div class="page-actions">
+                            {% if chat_message.role == "ENGINEER" %}
+                                <span class="badge badge-info">
+                                    Инженер
+                                </span>
+
+                            {% elif chat_message.role == "ASSISTANT" %}
+                                <span class="badge badge-success">
+                                    Асистент
+                                </span>
+
+                            {% else %}
+                                <span class="badge">
+                                    Система
+                                </span>
+                            {% endif %}
+
+                            {% if chat_message.provider != "NONE" %}
+                                <span class="badge">
+                                    {{ chat_message.get_provider_display }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <span class="text-muted">
+                            #{{ chat_message.sequence }}
+                            ·
+                            {{ chat_message.created_at|date:"d.m.Y H:i" }}
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        {{ chat_message.content|linebreaks }}
+                    </div>
+                </article>
+            {% empty %}
+                <div class="empty-state">
+                    <h3>Разговорът все още не е започнал</h3>
+
+                    <p>
+                        Следващият етап ще добави форма за въпроси
+                        към външните AI доставчици.
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+
+    <section class="card margin-bottom">
+        <div class="card-header">
+            <div>
+                <h2>Инженерни предложения</h2>
+
+                <span class="text-muted">
+                    Структурирани предложения, генерирани от локалния AI
+                </span>
+            </div>
+
+            <span class="badge">
+                {{ proposals|length }} предложения
+            </span>
+        </div>
+
+        <div class="card-body">
+            {% for proposal in proposals %}
+                <article class="card margin-bottom">
+                    <div class="card-header">
+                        <div>
+                            <div class="page-actions margin-bottom">
+                                <span class="badge badge-info">
+                                    {{ proposal.get_category_display }}
+                                </span>
+
+                                {% if proposal.status == "APPROVED" %}
+                                    <span class="badge badge-success">
+                                        {{ proposal.get_status_display }}
+                                    </span>
+
+                                {% elif proposal.status == "REJECTED" %}
+                                    <span class="badge badge-danger">
+                                        {{ proposal.get_status_display }}
+                                    </span>
+
+                                {% elif proposal.status == "PENDING" %}
+                                    <span class="badge badge-warning">
+                                        {{ proposal.get_status_display }}
+                                    </span>
+
+                                {% else %}
+                                    <span class="badge">
+                                        {{ proposal.get_status_display }}
+                                    </span>
+                                {% endif %}
+
+                                {% if proposal.risk_level == "LOW" %}
+                                    <span class="badge badge-success">
+                                        Риск: {{ proposal.get_risk_level_display }}
+                                    </span>
+
+                                {% elif proposal.risk_level == "MEDIUM" %}
+                                    <span class="badge badge-warning">
+                                        Риск: {{ proposal.get_risk_level_display }}
+                                    </span>
+
+                                {% elif proposal.risk_level == "HIGH" %}
+                                    <span class="badge badge-danger">
+                                        Риск: {{ proposal.get_risk_level_display }}
+                                    </span>
+
+                                {% else %}
+                                    <span class="badge">
+                                        Риск: {{ proposal.get_risk_level_display }}
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <h3>
+                                #{{ proposal.sequence }}
+                                {{ proposal.title }}
+                            </h3>
+                        </div>
+
+                        <div class="text-right">
+                            <span class="statistic-label">
+                                Увереност
+                            </span>
+
+                            <strong class="statistic-value">
+                                {{ proposal.confidence_percent }}%
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <p>
+                            {{ proposal.description|linebreaksbr }}
+                        </p>
+
+                        <dl class="definition-list">
+                            <dt>Параметър</dt>
+
+                            <dd>
+                                {% if proposal.parameter_name %}
+                                    {{ proposal.parameter_name }}
+                                {% else %}
+                                    <span class="text-muted">
+                                        Не е посочен
+                                    </span>
+                                {% endif %}
+                            </dd>
+
+                            <dt>Текуща стойност</dt>
+
+                            <dd>
+                                {% if proposal.current_value != None %}
+                                    {{ proposal.current_value }}
+
+                                    {% if proposal.unit %}
+                                        {{ proposal.unit }}
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">
+                                        Няма данни
+                                    </span>
+                                {% endif %}
+                            </dd>
+
+                            <dt>Предложена стойност</dt>
+
+                            <dd>
+                                {% if proposal.proposed_value != None %}
+                                    {{ proposal.proposed_value }}
+
+                                    {% if proposal.unit %}
+                                        {{ proposal.unit }}
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">
+                                        Няма данни
+                                    </span>
+                                {% endif %}
+                            </dd>
+
+                            <dt>Причина</dt>
+
+                            <dd>
+                                {{ proposal.reason|linebreaksbr }}
+                            </dd>
+
+                            <dt>Очаквана полза</dt>
+
+                            <dd>
+                                {{ proposal.expected_benefit|linebreaksbr }}
+                            </dd>
+
+                            <dt>Необходима проверка</dt>
+
+                            <dd>
+                                {% if proposal.requires_validation %}
+                                    <span class="badge badge-warning">
+                                        Да
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-success">
+                                        Не
+                                    </span>
+                                {% endif %}
+                            </dd>
+
+                            <dt>Прегледано от</dt>
+
+                            <dd>
+                                {% if proposal.reviewed_by %}
+                                    {{ proposal.reviewed_by.get_full_name|default:proposal.reviewed_by.get_username }}
+
+                                    {% if proposal.reviewed_at %}
+                                        на
+                                        {{ proposal.reviewed_at|date:"d.m.Y H:i" }}
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">
+                                        Все още не е прегледано
+                                    </span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+
+                        {% if proposal.review_note %}
+                            <div class="alert alert-info margin-top">
+                                <span>
+                                    <strong>Бележка от прегледа:</strong>
+                                    {{ proposal.review_note }}
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </article>
+            {% empty %}
+                <div class="empty-state">
+                    <h3>Все още няма инженерни предложения</h3>
+
+                    <p>
+                        Предложенията ще бъдат визуализирани тук
+                        след приключване на локалния инженерeн анализ.
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+
+    <div class="grid grid-two-columns margin-bottom">
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>AI резултати</h2>
+
+                    <span class="text-muted">
+                        Състояние на външното проучване и локалния анализ
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <dl class="definition-list">
+                    <dt>Външни резултати</dt>
+
+                    <dd>
+                        {% if experiment.external_results %}
+                            <span class="badge badge-success">
+                                Получени
+                            </span>
+                        {% else %}
+                            <span class="badge">
+                                Липсват
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>Локален анализ</dt>
+
+                    <dd>
+                        {% if experiment.local_analysis %}
+                            <span class="badge badge-success">
+                                Извършен
+                            </span>
+                        {% else %}
+                            <span class="badge">
+                                Не е извършен
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>Изчислени резултати</dt>
+
+                    <dd>
+                        {% if experiment.calculated_results %}
+                            <span class="badge badge-success">
+                                Налични
+                            </span>
+                        {% else %}
+                            <span class="badge">
+                                Липсват
+                            </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>Експериментални стойности</dt>
+
+                    <dd>
+                        {% if experiment.experimental_values %}
+                            <span class="badge badge-success">
+                                Налични
+                            </span>
+                        {% else %}
+                            <span class="badge">
+                                Липсват
+                            </span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </section>
+
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>Резултат от експеримента</h2>
+
+                    <span class="text-muted">
+                        Производен цифров двойник и одобрение
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if experiment.result_twin %}
+                    <dl class="definition-list">
+                        <dt>Резултатен двойник</dt>
+
+                        <dd>
+                            <a
+                                href="{% url 'digital_twins:detail' experiment.result_twin.pk %}"
+                            >
+                                {{ experiment.result_twin.name }}
+                            </a>
+                        </dd>
+
+                        <dt>Каталожен номер</dt>
+
+                        <dd>
+                            {{ experiment.result_twin.part_number }}
+                        </dd>
+
+                        <dt>Одобрил</dt>
+
+                        <dd>
+                            {% if experiment.approved_by %}
+                                {{ experiment.approved_by.get_full_name|default:experiment.approved_by.get_username }}
+                            {% else %}
+                                <span class="text-muted">
+                                    Няма данни
+                                </span>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                {% else %}
+                    <div class="empty-state">
+                        <h3>Няма създаден резултатен двойник</h3>
+
+                        <p>
+                            Нов цифров двойник може да бъде създаден
+                            след анализ и одобрение на предложенията.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>Действия</h2>
+
+                <span class="text-muted">
+                    Управление на текущия експеримент
+                </span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="page-actions">
+                {% if can_update %}
+                    <a
+                        href="{% url 'experiments:update' experiment.pk %}"
+                        class="button button-primary"
+                    >
+                        Редактиране
+                    </a>
+                {% endif %}
+
+                {% if can_archive %}
+                    <form
+                        method="post"
+                        action="{% url 'experiments:archive' experiment.pk %}"
+                    >
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="button button-warning"
+                        >
+                            Архивиране
+                        </button>
+                    </form>
+                {% endif %}
+
+                {% if can_delete %}
+                    <a
+                        href="{% url 'experiments:delete' experiment.pk %}"
+                        class="button button-danger"
+                    >
+                        Окончателно изтриване
+                    </a>
+                {% endif %}
+
+                <a
+                    href="{% url 'experiments:list' %}"
+                    class="button button-secondary"
+                >
+                    Назад към списъка
+                </a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

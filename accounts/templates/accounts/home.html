@@ -1,49 +1,405 @@
-<!DOCTYPE html>
-<html lang="bg">
-<head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1"
+{% extends "base.html" %}
+
+
+{% block title %}
+    Начално табло | Industrial Digital Twin Platform
+{% endblock %}
+
+
+{% block content %}
+    <section class="page-header">
+        <div>
+            <span class="topbar-eyebrow">
+                Industrial Digital Twin Platform
+            </span>
+
+            <h1>
+                Добре дошли,
+                {{ request.user.get_full_name|default:request.user.get_username }}
+            </h1>
+
+            <p class="page-description">
+                Централизирано управление на цифрови двойници,
+                инженерни експерименти и AI анализи в защитена
+                локална среда.
+            </p>
+        </div>
+
+        <div class="page-actions">
+            <a
+                href="{% url 'digital_twins:create' %}"
+                class="button button-secondary"
+            >
+                <span aria-hidden="true">＋</span>
+                Нов цифров двойник
+            </a>
+
+            <a
+                href="{% url 'experiments:create' %}"
+                class="button button-primary"
+            >
+                <span aria-hidden="true">＋</span>
+                Нов експеримент
+            </a>
+        </div>
+    </section>
+
+
+    <section
+        class="grid grid-four-columns margin-bottom"
+        aria-label="Основна статистика"
     >
-    <title>{{ page_title }}</title>
-</head>
-<body>
-    <header>
-        <h1>{{ page_title }}</h1>
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Цифрови двойници
+            </span>
 
-        <p>
-            Влязъл потребител:
-            <strong>{{ request.user.get_username }}</strong>
-        </p>
+            <strong class="statistic-value">
+                {{ digital_twin_count }}
+            </strong>
 
-        <form
-            method="post"
-            action="{% url 'accounts:logout' %}"
-        >
-            {% csrf_token %}
+            <span class="statistic-description">
+                Общо обекти в библиотеката
+            </span>
+        </article>
 
-            <button type="submit">
-                Изход
-            </button>
-        </form>
-    </header>
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Активни двойници
+            </span>
 
-    <main>
-        {% if messages %}
-            <section>
-                {% for message in messages %}
-                    <p>{{ message }}</p>
-                {% endfor %}
-            </section>
-        {% endif %}
+            <strong class="statistic-value text-success">
+                {{ active_digital_twin_count }}
+            </strong>
 
-        <h2>Системата е достъпна</h2>
+            <span class="statistic-description">
+                Достъпни за нови експерименти
+            </span>
+        </article>
 
-        <p>
-            Authentication и базовата защита работят.
-            Пълният dashboard ще бъде добавен на следващ етап.
-        </p>
-    </main>
-</body>
-</html>
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Експерименти
+            </span>
+
+            <strong class="statistic-value">
+                {{ experiment_count }}
+            </strong>
+
+            <span class="statistic-description">
+                Всички инженерни анализи
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Активни анализи
+            </span>
+
+            <strong class="statistic-value text-warning">
+                {{ active_experiment_count }}
+            </strong>
+
+            <span class="statistic-description">
+                В процес на работа
+            </span>
+        </article>
+    </section>
+
+
+    <div class="grid grid-two-columns margin-bottom">
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>Състояние на експериментите</h2>
+
+                    <span class="text-muted">
+                        Текущо разпределение по жизнен цикъл
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="grid grid-three-columns">
+                    <article class="statistic-card">
+                        <span class="statistic-label">
+                            Чернови
+                        </span>
+
+                        <strong class="statistic-value text-warning">
+                            {{ draft_experiment_count }}
+                        </strong>
+                    </article>
+
+                    <article class="statistic-card">
+                        <span class="statistic-label">
+                            Активни
+                        </span>
+
+                        <strong class="statistic-value">
+                            {{ active_experiment_count }}
+                        </strong>
+                    </article>
+
+                    <article class="statistic-card">
+                        <span class="statistic-label">
+                            Завършени
+                        </span>
+
+                        <strong class="statistic-value text-success">
+                            {{ completed_experiment_count }}
+                        </strong>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>Бързи действия</h2>
+
+                    <span class="text-muted">
+                        Най-често използвани операции
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="grid grid-two-columns">
+                    <a
+                        href="{% url 'digital_twins:list' %}"
+                        class="button button-secondary button-block"
+                    >
+                        Библиотека с двойници
+                    </a>
+
+                    <a
+                        href="{% url 'experiments:list' %}"
+                        class="button button-secondary button-block"
+                    >
+                        Всички експерименти
+                    </a>
+
+                    <a
+                        href="{% url 'digital_twins:create' %}"
+                        class="button button-primary button-block"
+                    >
+                        Създай цифров двойник
+                    </a>
+
+                    <a
+                        href="{% url 'experiments:create' %}"
+                        class="button button-primary button-block"
+                    >
+                        Стартирай експеримент
+                    </a>
+                </div>
+            </div>
+        </section>
+    </div>
+
+
+    <div class="grid grid-two-columns">
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>Последни цифрови двойници</h2>
+
+                    <span class="text-muted">
+                        Последно добавени производствени изделия
+                    </span>
+                </div>
+
+                <a
+                    href="{% url 'digital_twins:list' %}"
+                    class="button button-secondary button-small"
+                >
+                    Виж всички
+                </a>
+            </div>
+
+            {% if recent_digital_twins %}
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">
+                                    Наименование
+                                </th>
+
+                                <th scope="col">
+                                    Каталожен номер
+                                </th>
+
+                                <th scope="col">
+                                    Статус
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for twin in recent_digital_twins %}
+                                <tr>
+                                    <td>
+                                        <a
+                                            href="{% url 'digital_twins:detail' twin.pk %}"
+                                        >
+                                            <strong>
+                                                {{ twin.name }}
+                                            </strong>
+                                        </a>
+
+                                        {% if twin.material %}
+                                            <div class="text-muted">
+                                                {{ twin.material.name }}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {{ twin.part_number }}
+                                    </td>
+
+                                    <td>
+                                        {% if twin.is_active %}
+                                            <span class="badge badge-success">
+                                                Активен
+                                            </span>
+                                        {% else %}
+                                            <span class="badge">
+                                                Неактивен
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>Все още няма цифрови двойници</h3>
+
+                    <p>
+                        Добавете първия производствен обект
+                        в библиотеката.
+                    </p>
+
+                    <a
+                        href="{% url 'digital_twins:create' %}"
+                        class="button button-primary"
+                    >
+                        Създай цифров двойник
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <h2>Последни експерименти</h2>
+
+                    <span class="text-muted">
+                        Последно създадени инженерни анализи
+                    </span>
+                </div>
+
+                <a
+                    href="{% url 'experiments:list' %}"
+                    class="button button-secondary button-small"
+                >
+                    Виж всички
+                </a>
+            </div>
+
+            {% if recent_experiments %}
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">
+                                    Експеримент
+                                </th>
+
+                                <th scope="col">
+                                    Двойник
+                                </th>
+
+                                <th scope="col">
+                                    Статус
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for experiment in recent_experiments %}
+                                <tr>
+                                    <td>
+                                        <a
+                                            href="{% url 'experiments:detail' experiment.pk %}"
+                                        >
+                                            <strong>
+                                                {{ experiment.name }}
+                                            </strong>
+                                        </a>
+
+                                        <div class="text-muted">
+                                            {{ experiment.created_at|date:"d.m.Y H:i" }}
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        {{ experiment.digital_twin.name }}
+                                    </td>
+
+                                    <td>
+                                        {% if experiment.status == "DRAFT" %}
+                                            <span class="badge badge-warning">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% elif experiment.status == "FAILED" %}
+                                            <span class="badge badge-danger">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% elif experiment.status == "COMPLETED" or experiment.status == "TWIN_CREATED" %}
+                                            <span class="badge badge-success">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+
+                                        {% else %}
+                                            <span class="badge badge-info">
+                                                {{ experiment.get_status_display }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>Все още няма експерименти</h3>
+
+                    <p>
+                        Създайте първия експеримент върху
+                        активен цифров двойник.
+                    </p>
+
+                    <a
+                        href="{% url 'experiments:create' %}"
+                        class="button button-primary"
+                    >
+                        Нов експеримент
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}

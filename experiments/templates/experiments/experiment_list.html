@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Експерименти | Industrial Digital Twin Platform
+{% endblock %}
+
+
+{% block content %}
+    <section class="page-header">
+        <div>
+            <h1>Инженерни експерименти</h1>
+
+            <p class="page-description">
+                Управление, проследяване и анализ на експериментите,
+                извършвани върху цифровите двойници.
+            </p>
+        </div>
+
+        <div class="page-actions">
+            <a
+                href="{% url 'experiments:create' %}"
+                class="button button-primary"
+            >
+                <span aria-hidden="true">＋</span>
+                Нов експеримент
+            </a>
+        </div>
+    </section>
+
+
+    <section
+        class="grid grid-four-columns margin-bottom"
+        aria-label="Статистика за експериментите"
+    >
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Общо експерименти
+            </span>
+
+            <strong class="statistic-value">
+                {{ statistics.total_count }}
+            </strong>
+
+            <span class="statistic-description">
+                Всички намерени записи
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Чернови
+            </span>
+
+            <strong class="statistic-value text-warning">
+                {{ statistics.draft_count }}
+            </strong>
+
+            <span class="statistic-description">
+                Очакват започване на работа
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Активни
+            </span>
+
+            <strong class="statistic-value">
+                {{ statistics.active_count }}
+            </strong>
+
+            <span class="statistic-description">
+                В процес на обработка и анализ
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Завършени
+            </span>
+
+            <strong class="statistic-value text-success">
+                {{ statistics.completed_count }}
+            </strong>
+
+            <span class="statistic-description">
+                Приключени инженерни експерименти
+            </span>
+        </article>
+    </section>
+
+
+    <section class="card margin-bottom">
+        <div class="card-header">
+            <div>
+                <h2>Филтриране</h2>
+
+                <span class="text-muted">
+                    Търсене по експеримент, цифров двойник или статус
+                </span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <form
+                method="get"
+                action="{% url 'experiments:list' %}"
+            >
+                <div class="filter-grid">
+                    <div class="form-group">
+                        <label for="{{ filter_form.query.id_for_label }}">
+                            {{ filter_form.query.label }}
+                        </label>
+
+                        {{ filter_form.query }}
+
+                        {% if filter_form.query.errors %}
+                            <div class="field-errors">
+                                {{ filter_form.query.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ filter_form.digital_twin.id_for_label }}">
+                            {{ filter_form.digital_twin.label }}
+                        </label>
+
+                        {{ filter_form.digital_twin }}
+
+                        {% if filter_form.digital_twin.errors %}
+                            <div class="field-errors">
+                                {{ filter_form.digital_twin.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ filter_form.status.id_for_label }}">
+                            {{ filter_form.status.label }}
+                        </label>
+
+                        {{ filter_form.status }}
+
+                        {% if filter_form.status.errors %}
+                            <div class="field-errors">
+                                {{ filter_form.status.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="page-actions">
+                        <button
+                            type="submit"
+                            class="button button-primary"
+                        >
+                            Филтрирай
+                        </button>
+
+                        <a
+                            href="{% url 'experiments:list' %}"
+                            class="button button-secondary"
+                        >
+                            Изчисти
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+
+
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>Списък с експерименти</h2>
+
+                <span class="text-muted">
+                    Показани са
+                    {{ page_obj.paginator.count|default:experiments|length }}
+                    резултата
+                </span>
+            </div>
+
+            <div class="page-actions">
+                <span class="badge">
+                    Архивирани:
+                    {{ statistics.archived_count }}
+                </span>
+
+                {% if statistics.failed_count %}
+                    <span class="badge badge-danger">
+                        Неуспешни:
+                        {{ statistics.failed_count }}
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if experiments %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">
+                                Експеримент
+                            </th>
+
+                            <th scope="col">
+                                Цифров двойник
+                            </th>
+
+                            <th scope="col">
+                                Статус
+                            </th>
+
+                            <th scope="col">
+                                Създаден от
+                            </th>
+
+                            <th scope="col">
+                                Дата
+                            </th>
+
+                            <th
+                                scope="col"
+                                class="text-right"
+                            >
+                                Действия
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for experiment in experiments %}
+                            <tr>
+                                <td>
+                                    <a
+                                        href="{% url 'experiments:detail' experiment.pk %}"
+                                    >
+                                        <strong>
+                                            {{ experiment.name }}
+                                        </strong>
+                                    </a>
+
+                                    {% if experiment.objective %}
+                                        <div class="text-muted">
+                                            {{ experiment.objective|truncatechars:90 }}
+                                        </div>
+                                    {% elif experiment.description %}
+                                        <div class="text-muted">
+                                            {{ experiment.description|truncatechars:90 }}
+                                        </div>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <a
+                                        href="{% url 'digital_twins:detail' experiment.digital_twin.pk %}"
+                                    >
+                                        {{ experiment.digital_twin.name }}
+                                    </a>
+
+                                    <div class="text-muted">
+                                        {{ experiment.digital_twin.part_number }}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    {% if experiment.status == "DRAFT" %}
+                                        <span class="badge badge-warning">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+
+                                    {% elif experiment.status == "CHATTING" %}
+                                        <span class="badge badge-info">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+
+                                    {% elif experiment.status == "READY_FOR_ANALYSIS" %}
+                                        <span class="badge badge-info">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+
+                                    {% elif experiment.status == "ANALYZING" %}
+                                        <span class="badge badge-warning">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+
+                                    {% elif experiment.status == "PROPOSALS_READY" %}
+                                        <span class="badge badge-success">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+
+                                    {% elif experiment.status == "PARTIALLY_APPROVED" %}
+                                        <span class="badge badge-warning">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+
+                                    {% elif experiment.status == "APPROVED" %}
+                                        <span class="badge badge-success">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+
+                                    {% elif experiment.status == "TWIN_CREATED" %}
+                                        <span class="badge badge-success">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+
+                                    {% elif experiment.status == "COMPLETED" %}
+                                        <span class="badge badge-success">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+
+                                    {% elif experiment.status == "FAILED" %}
+                                        <span class="badge badge-danger">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+
+                                    {% elif experiment.status == "ARCHIVED" %}
+                                        <span class="badge">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+
+                                    {% else %}
+                                        <span class="badge">
+                                            {{ experiment.get_status_display }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if experiment.created_by %}
+                                        {{ experiment.created_by.get_full_name|default:experiment.created_by.get_username }}
+                                    {% else %}
+                                        <span class="text-muted">
+                                            Няма данни
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <time datetime="{{ experiment.created_at|date:'c' }}">
+                                        {{ experiment.created_at|date:"d.m.Y" }}
+                                    </time>
+
+                                    <div class="text-muted">
+                                        {{ experiment.created_at|date:"H:i" }}
+                                    </div>
+                                </td>
+
+                                <td class="text-right">
+                                    <div class="page-actions">
+                                        <a
+                                            href="{% url 'experiments:detail' experiment.pk %}"
+                                            class="button button-secondary button-small"
+                                        >
+                                            Преглед
+                                        </a>
+
+                                        {% if experiment.status == "DRAFT" or experiment.status == "CHATTING" %}
+                                            {% if not experiment.result_twin_id %}
+                                                <a
+                                                    href="{% url 'experiments:update' experiment.pk %}"
+                                                    class="button button-secondary button-small"
+                                                >
+                                                    Редактиране
+                                                </a>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+                <div class="card-footer">
+                    <nav
+                        class="pagination"
+                        aria-label="Странициране на експериментите"
+                    >
+                        {% if page_obj.has_previous %}
+                            <a
+                                href="?page=1{% if request.GET.query %}&query={{ request.GET.query|urlencode }}{% endif %}{% if request.GET.digital_twin %}&digital_twin={{ request.GET.digital_twin|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}"
+                                aria-label="Първа страница"
+                            >
+                                «
+                            </a>
+
+                            <a
+                                href="?page={{ page_obj.previous_page_number }}{% if request.GET.query %}&query={{ request.GET.query|urlencode }}{% endif %}{% if request.GET.digital_twin %}&digital_twin={{ request.GET.digital_twin|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}"
+                            >
+                                Назад
+                            </a>
+                        {% endif %}
+
+                        <span class="current">
+                            {{ page_obj.number }}
+                        </span>
+
+                        <span>
+                            от {{ page_obj.paginator.num_pages }}
+                        </span>
+
+                        {% if page_obj.has_next %}
+                            <a
+                                href="?page={{ page_obj.next_page_number }}{% if request.GET.query %}&query={{ request.GET.query|urlencode }}{% endif %}{% if request.GET.digital_twin %}&digital_twin={{ request.GET.digital_twin|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}"
+                            >
+                                Напред
+                            </a>
+
+                            <a
+                                href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.query %}&query={{ request.GET.query|urlencode }}{% endif %}{% if request.GET.digital_twin %}&digital_twin={{ request.GET.digital_twin|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}"
+                                aria-label="Последна страница"
+                            >
+                                »
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <h2>Няма намерени експерименти</h2>
+
+                <p>
+                    Няма експерименти, които да отговарят на
+                    избраните критерии.
+                </p>
+
+                <div class="page-actions">
+                    <a
+                        href="{% url 'experiments:create' %}"
+                        class="button button-primary"
+                    >
+                        Създай първия експеримент
+                    </a>
+
+                    {% if request.GET %}
+                        <a
+                            href="{% url 'experiments:list' %}"
+                            class="button button-secondary"
+                        >
+                            Изчисти филтрите
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </section>
+{% endblock %}

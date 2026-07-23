@@ -1,71 +1,183 @@
-<!DOCTYPE html>
-<html lang="bg">
-<head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1"
+{% extends "base.html" %}
+{% load static %}
+
+
+{% block title %}
+    Вход | Industrial Digital Twin Platform
+{% endblock %}
+
+
+{% block extra_css %}
+    <link
+        rel="stylesheet"
+        href="{% static 'core/css/login.css' %}"
     >
-    <title>Вход | Industrial Digital Twin Platform</title>
-</head>
-<body>
-    <main>
-        <h1>Industrial Digital Twin Platform</h1>
-        <h2>Вход в системата</h2>
+{% endblock %}
 
-        {% if messages %}
-            <section>
-                {% for message in messages %}
-                    <p>{{ message }}</p>
-                {% endfor %}
-            </section>
-        {% endif %}
 
-        {% if form.non_field_errors %}
-            <section>
-                {% for error in form.non_field_errors %}
-                    <p>{{ error }}</p>
-                {% endfor %}
-            </section>
-        {% endif %}
+{% block content %}
+    <section class="public-page">
+        <div>
+            {% if messages %}
+                <section
+                    class="message-container"
+                    aria-label="Системни съобщения"
+                >
+                    {% for message in messages %}
+                        <div
+                            class="
+                                alert
+                                {% if message.tags %}
+                                    alert-{{ message.tags }}
+                                {% else %}
+                                    alert-info
+                                {% endif %}
+                            "
+                            role="alert"
+                        >
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </section>
+            {% endif %}
 
-        <form method="post" action="{% url 'accounts:login' %}">
-            {% csrf_token %}
+            <div class="login-layout">
+                <section class="login-presentation">
+                    <div class="login-brand">
+                        <span class="login-brand-mark">
+                            DT
+                        </span>
 
-            <input
-                type="hidden"
-                name="next"
-                value="{{ next }}"
-            >
+                        <span class="login-brand-text">
+                            <strong>Industrial</strong>
+                            <span>Digital Twin Platform</span>
+                        </span>
+                    </div>
 
-            <div>
-                <label for="{{ form.username.id_for_label }}">
-                    {{ form.username.label }}
-                </label>
+                    <div class="login-introduction">
+                        <span class="login-eyebrow">
+                            Инженерна информационна система
+                        </span>
 
-                {{ form.username }}
+                        <h1>
+                            Управление и анализ на индустриални
+                            цифрови двойници
+                        </h1>
 
-                {% for error in form.username.errors %}
-                    <p>{{ error }}</p>
-                {% endfor %}
+                        <p>
+                            Защитена локална платформа за управление
+                            на производствени изделия, инженерни
+                            експерименти и анализи с изкуствен интелект.
+                        </p>
+                    </div>
+
+                    <ul class="login-feature-list">
+                        <li>
+                            Достъп само в защитената локална мрежа
+                        </li>
+
+                        <li>
+                            Проследимост на потребители и действия
+                        </li>
+
+                        <li>
+                            Локален инженерeн AI анализ
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="login-panel">
+                    <div class="login-form-container">
+                        <header class="login-form-header">
+                            <span class="login-eyebrow">
+                                Сигурен достъп
+                            </span>
+
+                            <h2>Вход в системата</h2>
+
+                            <p>
+                                Въведете потребителското си име
+                                и парола.
+                            </p>
+                        </header>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                <span>
+                                    {% for error in form.non_field_errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </span>
+                            </div>
+                        {% endif %}
+
+                        <form
+                            method="post"
+                            action="{% url 'accounts:login' %}"
+                            class="login-form"
+                            novalidate
+                        >
+                            {% csrf_token %}
+
+                            {% if next and next != logout_url %}
+                                <input
+                                    type="hidden"
+                                    name="next"
+                                    value="{{ next }}"
+                                >
+                            {% endif %}
+
+                            <div class="form-group">
+                                <label for="{{ form.username.id_for_label }}">
+                                    {{ form.username.label }}
+                                </label>
+
+                                {{ form.username }}
+
+                                {% for error in form.username.errors %}
+                                    <div class="field-errors">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="form-group">
+                                <label for="{{ form.password.id_for_label }}">
+                                    {{ form.password.label }}
+                                </label>
+
+                                {{ form.password }}
+
+                                {% for error in form.password.errors %}
+                                    <div class="field-errors">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <button
+                                type="submit"
+                                class="button button-primary button-block"
+                            >
+                                Вход в платформата
+                            </button>
+                        </form>
+
+                        <p class="login-help">
+                            Достъпът е предназначен само за
+                            оторизирани потребители.
+                        </p>
+
+                        <div class="login-security">
+                            <span class="login-security-indicator"></span>
+
+                            <span>
+                                Защитена локална среда
+                            </span>
+                        </div>
+                    </div>
+                </section>
             </div>
-
-            <div>
-                <label for="{{ form.password.id_for_label }}">
-                    {{ form.password.label }}
-                </label>
-
-                {{ form.password }}
-
-                {% for error in form.password.errors %}
-                    <p>{{ error }}</p>
-                {% endfor %}
-            </div>
-
-            <button type="submit">
-                Вход
-            </button>
-        </form>
-    </main>
-</body>
-</html>
+        </div>
+    </section>
+{% endblock %}

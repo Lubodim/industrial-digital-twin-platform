@@ -11,6 +11,8 @@ from django.views.decorators.http import require_http_methods, require_POST
 
 from accounts.forms import PlatformAuthenticationForm
 from accounts.services import record_login, record_logout
+from digital_twins.models import DigitalTwin
+from experiments.models import Experiment
 
 
 def _get_safe_redirect_url(
@@ -50,16 +52,13 @@ def login_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return redirect("accounts:home")
 
-    next_url = (
-        request.POST.get("next")
-        or request.GET.get("next")
-        or ""
-    )
+    next_url = (request.POST.get("next") or request.GET.get("next") or "")
 
-    form = PlatformAuthenticationForm(
-        request=request,
-        data=request.POST or None,
-    )
+    logout_url = reverse("accounts:logout")
+
+    if next_url == logout_url: next_url = ""
+
+    form = PlatformAuthenticationForm(request=request, data=request.POST or None, )
 
     if request.method == "POST" and form.is_valid():
         user = form.get_user()
@@ -86,6 +85,8 @@ def login_view(request: HttpRequest) -> HttpResponse:
     context = {
         "form": form,
         "next": next_url,
+        "logout_url": logout_url,
+        "page_title": "Вход в системата",
     }
 
     return render(
@@ -122,13 +123,77 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def home_view(request: HttpRequest) -> HttpResponse:
     """
-    Protected application entry point.
-
-    The full dashboard will replace this minimal page in Roadmap Stage 10.
+    Display the main industrial platform dashboard.
     """
 
+    active_experiment_statuses = {
+        Experiment.Status.CHATTING,
+        Experiment.Status.READY_FOR_ANALYSIS,
+        Experiment.Status.ANALYZING,
+        Experiment.Status.PROPOSALS_READY,
+        Experiment.Status.PARTIALLY_APPROVED,
+        Experiment.Status.APPROVED,
+        Experiment.Status.TWIN_CREATED,
+    }
+
+    completed_experiment_statuses = {
+        Experiment.Status.COMPLETED,
+        Experiment.Status.TWIN_CREATED,
+    }
+
+    digital_twins = (
+        DigitalTwin.objects
+        .select_related(
+            "material",
+            "technology",
+            "created_by",
+        )
+    )
+
+    experiments = (
+        Experiment.objects
+        .select_related(
+            "digital_twin",
+            "created_by",
+        )
+    )
+
     context = {
-        "page_title": "Industrial Digital Twin Platform",
+        "page_title": "Начално табло",
+        "digital_twin_count": (
+            digital_twins.count()
+        ),
+        "active_digital_twin_count": (
+            digital_twins.filter(
+                is_active=True
+            ).count()
+        ),
+        "experiment_count": (
+            experiments.count()
+        ),
+        "active_experiment_count": (
+            experiments.filter(
+                status__in=active_experiment_statuses
+            ).count()
+        ),
+        "completed_experiment_count": (
+            experiments.filter(
+                status__in=completed_experiment_statuses
+            ).count()
+        ),
+        "draft_experiment_count": (
+            experiments.filter(
+                status=Experiment.Status.DRAFT
+            ).count()
+        ),
+        "recent_digital_twins": (
+            digital_twins
+            .order_by("-created_at")[:5]
+        ),
+        "recent_experiments": (
+            experiments
+            .order_by("-created_at")[:5]
+        ),
     }
 
     return render(
@@ -136,3 +201,4 @@ def home_view(request: HttpRequest) -> HttpResponse:
         "accounts/home.html",
         context,
     )
+    

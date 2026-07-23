@@ -1,0 +1,237 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <meta
+        name="description"
+        content="Industrial Digital Twin Platform"
+    >
+
+    <title>
+        {% block title %}
+            {{ page_title|default:"Industrial Digital Twin Platform" }}
+        {% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'core/css/industrial.css' %}"
+    >
+
+    {% block extra_css %}
+    {% endblock %}
+</head>
+
+<body>
+    <div class="application-shell">
+
+        {% if request.user.is_authenticated %}
+            <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <a
+                        href="{% url 'accounts:home' %}"
+                        class="brand-link"
+                    >
+                        <span class="brand-mark">DT</span>
+
+                        <span class="brand-text">
+                            <strong>Industrial</strong>
+                            <small>Digital Twin Platform</small>
+                        </span>
+                    </a>
+                </div>
+
+                <nav
+                    class="sidebar-navigation"
+                    aria-label="Основна навигация"
+                >
+                    <a
+                        href="{% url 'accounts:home' %}"
+                        class="navigation-link"
+                    >
+                        <span class="navigation-icon">⌂</span>
+                        <span>Начало</span>
+                    </a>
+
+                    <a
+                        href="{% url 'digital_twins:list' %}"
+                        class="navigation-link"
+                    >
+                        <span class="navigation-icon">◇</span>
+                        <span>Цифрови двойници</span>
+                    </a>
+
+                    <a
+                        href="{% url 'experiments:list' %}"
+                        class="navigation-link"
+                    >
+                        <span class="navigation-icon">⚙</span>
+                        <span>Експерименти</span>
+                    </a>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <div class="system-status">
+                        <span class="status-indicator"></span>
+
+                        <span>
+                            Системата е достъпна
+                        </span>
+                    </div>
+
+                    <small>
+                        Local intranet environment
+                    </small>
+                </div>
+            </aside>
+        {% endif %}
+
+        <div
+            class="
+                application-content
+                {% if not request.user.is_authenticated %}
+                    application-content-public
+                {% endif %}
+            "
+        >
+            {% if request.user.is_authenticated %}
+                <header class="topbar">
+                    <div class="topbar-title">
+                        <button
+                            type="button"
+                            class="sidebar-toggle"
+                            id="sidebar-toggle"
+                            aria-label="Покажи или скрий навигацията"
+                        >
+                            ☰
+                        </button>
+
+                        <div>
+                            <span class="topbar-eyebrow">
+                                Инженерна платформа
+                            </span>
+
+                            <strong>
+                                {{ page_title|default:"Dashboard" }}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="topbar-user">
+                        <div class="user-information">
+                            <span class="user-avatar">
+                                {{ request.user.get_username|slice:":1"|upper }}
+                            </span>
+
+                            <div>
+                                <strong>
+                                    {{ request.user.get_full_name|default:request.user.get_username }}
+                                </strong>
+
+                                <small>
+                                    {{ request.user.get_username }}
+                                </small>
+                            </div>
+                        </div>
+
+                        <form
+                            method="post"
+                            action="{% url 'accounts:logout' %}"
+                        >
+                            {% csrf_token %}
+
+                            <button
+                                type="submit"
+                                class="button button-secondary button-small"
+                            >
+                                Изход
+                            </button>
+                        </form>
+                    </div>
+                </header>
+            {% endif %}
+
+            <main class="main-content">
+                {% if request.user.is_authenticated %}
+                    {% if messages %}
+                        <section
+                            class="message-container"
+                            aria-label="Системни съобщения"
+                        >
+                            {% for message in messages %}
+                                <div
+                                    class="
+                                        alert
+                                        {% if message.tags %}
+                                            alert-{{ message.tags }}
+                                        {% else %}
+                                            alert-info
+                                        {% endif %}
+                                    "
+                                    role="alert"
+                                >
+                                    <span>
+                                        {{ message }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </section>
+                    {% endif %}
+                {% endif %}
+
+                {% block content %}
+                {% endblock %}
+            </main>
+
+            {% if request.user.is_authenticated %}
+                <footer class="application-footer">
+                    <span>
+                        Industrial Digital Twin Platform
+                    </span>
+
+                    <span>
+                        Защитена локална среда
+                    </span>
+                </footer>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+                const toggleButton =
+                    document.getElementById("sidebar-toggle");
+
+                const applicationShell =
+                    document.querySelector(".application-shell");
+
+                if (!toggleButton || !applicationShell) {
+                    return;
+                }
+
+                toggleButton.addEventListener(
+                    "click",
+                    function () {
+                        applicationShell.classList.toggle(
+                            "sidebar-collapsed"
+                        );
+                    }
+                );
+            }
+        );
+    </script>
+
+    {% block extra_js %}
+    {% endblock %}
+</body>
+</html>
