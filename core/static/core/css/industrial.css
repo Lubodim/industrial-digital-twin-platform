@@ -1064,3 +1064,10 @@ textarea {
         margin-bottom: 12px;
     }
 }
+
+.navigation-button {
+    width: 100%;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}

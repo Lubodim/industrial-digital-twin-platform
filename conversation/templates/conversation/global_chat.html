@@ -1,0 +1,304 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <meta
+        name="description"
+        content="Global AI Assistant"
+    >
+
+    <title>
+        Global AI Assistant
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'conversation/css/global_chat.css' %}"
+    >
+</head>
+
+<body>
+    <main
+        class="assistant-window"
+        data-conversation-id="{{ active_conversation.id }}"
+        data-send-url="{% url 'conversation:send_global_message' active_conversation.id %}"
+    >
+        <header class="assistant-header">
+            <div class="assistant-identity">
+                <div class="assistant-logo">
+                    AI
+                </div>
+
+                <div>
+                    <span class="assistant-eyebrow">
+                        Industrial Digital Twin Platform
+                    </span>
+
+                    <h1>
+                        Global AI Assistant
+                    </h1>
+                </div>
+            </div>
+
+            <div class="assistant-header-actions">
+                <span
+                    class="assistant-status"
+                    title="Връзка с локалната платформа"
+                >
+                    <span class="assistant-status-dot"></span>
+                    Local
+                </span>
+
+                <button
+                    type="button"
+                    class="window-button"
+                    id="minimize-window"
+                    title="Минимизирай"
+                    aria-label="Минимизирай прозореца"
+                >
+                    —
+                </button>
+
+                <button
+                    type="button"
+                    class="window-button window-button-close"
+                    id="close-window"
+                    title="Затвори"
+                    aria-label="Затвори прозореца"
+                >
+                    ×
+                </button>
+            </div>
+        </header>
+
+        <div class="assistant-layout">
+            <aside class="conversation-sidebar">
+                <form
+                    method="post"
+                    action="{% url 'conversation:create_global_conversation' %}"
+                >
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="new-conversation-button"
+                    >
+                        <span>＋</span>
+                        Нов разговор
+                    </button>
+                </form>
+
+                <div class="conversation-sidebar-heading">
+                    Разговори
+                </div>
+
+                <nav
+                    class="conversation-list"
+                    aria-label="История на разговорите"
+                >
+                    {% for conversation in conversations %}
+                        <a
+                            href="{% url 'conversation:global_chat_detail' conversation.id %}"
+                            class="
+                                conversation-item
+                                {% if conversation.id == active_conversation.id %}
+                                    conversation-item-active
+                                {% endif %}
+                            "
+                        >
+                            <span class="conversation-icon">
+                                ◇
+                            </span>
+
+                            <span class="conversation-information">
+                                <strong>
+                                    {{ conversation.title }}
+                                </strong>
+
+                                <small>
+                                    {{ conversation.updated_at|date:"d.m.Y H:i" }}
+                                </small>
+                            </span>
+                        </a>
+                    {% empty %}
+                        <div class="conversation-empty">
+                            Няма създадени разговори.
+                        </div>
+                    {% endfor %}
+                </nav>
+            </aside>
+
+            <section class="chat-panel">
+                <header class="chat-conversation-header">
+                    <div>
+                        <span class="chat-label">
+                            Активен разговор
+                        </span>
+
+                        <h2 id="conversation-title">
+                            {{ active_conversation.title }}
+                        </h2>
+                    </div>
+
+                    <span
+                        class="
+                            conversation-state
+                            {% if active_conversation.status == 'ACTIVE' %}
+                                conversation-state-active
+                            {% endif %}
+                        "
+                    >
+                        {{ active_conversation.get_status_display }}
+                    </span>
+                </header>
+
+                <div
+                    class="message-history"
+                    id="message-history"
+                    aria-live="polite"
+                >
+                    {% for message in active_conversation.messages.all %}
+                        <article
+                            class="
+                                chat-message
+                                {% if message.role == 'ENGINEER' %}
+                                    chat-message-engineer
+                                {% elif message.role == 'AI' %}
+                                    chat-message-ai
+                                {% else %}
+                                    chat-message-system
+                                {% endif %}
+                            "
+                        >
+                            <div class="message-avatar">
+                                {% if message.role == 'ENGINEER' %}
+                                    {{ request.user.get_username|slice:":1"|upper }}
+                                {% elif message.role == 'AI' %}
+                                    AI
+                                {% else %}
+                                    !
+                                {% endif %}
+                            </div>
+
+                            <div class="message-content">
+                                <header class="message-header">
+                                    <strong>
+                                        {% if message.role == 'ENGINEER' %}
+                                            Инженер
+                                        {% elif message.role == 'AI' %}
+                                            AI асистент
+                                        {% else %}
+                                            Система
+                                        {% endif %}
+                                    </strong>
+
+                                    <time>
+                                        {{ message.created_at|date:"H:i" }}
+                                    </time>
+                                </header>
+
+                                <div class="message-text">
+                                    {{ message.content|linebreaksbr }}
+                                </div>
+                            </div>
+                        </article>
+                    {% empty %}
+                        <div
+                            class="welcome-panel"
+                            id="welcome-panel"
+                        >
+                            <div class="welcome-icon">
+                                AI
+                            </div>
+
+                            <h2>
+                                Инженерен AI асистент
+                            </h2>
+
+                            <p>
+                                Задайте въпрос за цифрови двойници,
+                                материали, производствени процеси,
+                                експерименти или индустриална роботика.
+                            </p>
+
+                            <small>
+                                Разговорът се съхранява в локалната
+                                база данни на платформата.
+                            </small>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div
+                    class="typing-indicator"
+                    id="typing-indicator"
+                    hidden
+                >
+                    <span></span>
+                    <span></span>
+                    <span></span>
+
+                    <small>
+                        AI асистентът обработва заявката...
+                    </small>
+                </div>
+
+                <form
+                    class="chat-composer"
+                    id="chat-form"
+                >
+                    {% csrf_token %}
+
+                    <label
+                        for="chat-message-input"
+                        class="visually-hidden"
+                    >
+                        Съобщение
+                    </label>
+
+                    <textarea
+                        id="chat-message-input"
+                        name="content"
+                        rows="1"
+                        maxlength="8000"
+                        placeholder="Напишете инженерния си въпрос..."
+                        autocomplete="off"
+                        required
+                    ></textarea>
+
+                    <button
+                        type="submit"
+                        class="send-button"
+                        id="send-button"
+                    >
+                        <span>Изпрати</span>
+                        <span class="send-icon">➤</span>
+                    </button>
+                </form>
+
+                <footer class="chat-footer">
+                    <span>
+                        Gemini Global Engineering Assistant
+                    </span>
+
+                    <span>
+                        Защитена локална сесия
+                    </span>
+                </footer>
+            </section>
+        </div>
+    </main>
+
+    <script
+        src="{% static 'conversation/js/global_chat.js' %}"
+    ></script>
+</body>
+</html>

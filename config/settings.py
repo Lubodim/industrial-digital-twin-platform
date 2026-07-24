@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     "accounts",
     "digital_twins",
     "experiments",
+    "conversation.apps.ConversationConfig",
     "ai_engine",
     "audit",
 ]
@@ -210,3 +211,53 @@ CSRF_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = "DENY"
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# ======================================================
+# OLLAMA SETTINGS
+# ======================================================
+
+OLLAMA_HOST = os.getenv(
+    "OLLAMA_HOST",
+    "http://localhost:11434",
+).rstrip("/")
+
+OLLAMA_ASSISTANT_MODEL = os.getenv(
+    "OLLAMA_ASSISTANT_MODEL",
+    "qwen2.5:3b",
+).strip()
+
+OLLAMA_ANALYZER_MODEL = os.getenv(
+    "OLLAMA_ANALYZER_MODEL",
+    "qwen3.5:9b",
+).strip()
+
+OLLAMA_ASSISTANT_TIMEOUT = int(
+    os.getenv(
+        "OLLAMA_ASSISTANT_TIMEOUT",
+        "60",
+    )
+)
+
+OLLAMA_ANALYZER_TIMEOUT = int(
+    os.getenv(
+        "OLLAMA_ANALYZER_TIMEOUT",
+        "300",
+    )
+)
+
+OLLAMA_KEEP_ALIVE = os.getenv(
+    "OLLAMA_KEEP_ALIVE",
+    "15m",
+).strip()
+
+OLLAMA_TEMPERATURE = float(
+    os.getenv(
+        "OLLAMA_TEMPERATURE",
+        "0.1",
+    )
+)
+
+OLLAMA_THINK = get_boolean_environment(
+    "OLLAMA_THINK",
+    default=False,
+)

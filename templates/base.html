@@ -76,6 +76,14 @@
                         <span class="navigation-icon">⚙</span>
                         <span>Експерименти</span>
                     </a>
+                    <button
+                        type="button"
+                        class="navigation-link navigation-button"
+                        id="open-global-ai"
+                    >
+                        <span class="navigation-icon">AI</span>
+                        <span>AI асистент</span>
+                    </button>
                 </nav>
 
                 <div class="sidebar-footer">
@@ -230,7 +238,88 @@
             }
         );
     </script>
+    <script>
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+                const openAiButton =
+                    document.getElementById("open-global-ai");
 
+                if (!openAiButton) {
+                    return;
+                }
+
+                openAiButton.addEventListener(
+                    "click",
+                    function () {
+                        const savedWidth =
+                            localStorage.getItem(
+                                "globalAiWindowWidth"
+                            ) || "1050";
+
+                        const savedHeight =
+                            localStorage.getItem(
+                                "globalAiWindowHeight"
+                            ) || "760";
+
+                        const savedLeft =
+                            localStorage.getItem(
+                                "globalAiWindowScreenX"
+                            );
+
+                        const savedTop =
+                            localStorage.getItem(
+                                "globalAiWindowScreenY"
+                            );
+
+                        const defaultLeft =
+                            Math.max(
+                                0,
+                                window.screenX +
+                                window.outerWidth -
+                                Number(savedWidth) -
+                                40
+                            );
+
+                        const defaultTop =
+                            Math.max(
+                                0,
+                                window.screenY + 60
+                            );
+
+                        const left =
+                            savedLeft || defaultLeft;
+
+                        const top =
+                            savedTop || defaultTop;
+
+                        const windowFeatures = [
+                            `width=${savedWidth}`,
+                            `height=${savedHeight}`,
+                            `left=${left}`,
+                            `top=${top}`,
+                            "resizable=yes",
+                            "scrollbars=no",
+                            "menubar=no",
+                            "toolbar=no",
+                            "location=no",
+                            "status=no",
+                        ].join(",");
+
+                        const aiWindow = window.open(
+                            "{% url 'conversation:global_chat' %}",
+                            "industrialGlobalAiAssistant",
+                            windowFeatures
+                        );
+
+                        if (aiWindow) {
+                            aiWindow.focus();
+                        }
+                    }
+                );
+            }
+        );
+    </script>
     {% block extra_js %}
     {% endblock %}
 </body>

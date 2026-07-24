@@ -102,7 +102,7 @@ class OllamaClient:
         self.model = (
             model
             or os.getenv(
-                "OLLAMA_MODEL",
+                "OLLAMA_ANALYZER_MODEL",
                 "qwen3.5:9b",
             )
         ).strip()
@@ -277,6 +277,9 @@ class OllamaClient:
 
         options: dict[str, Any] = {
             "temperature": requested_temperature,
+            "num_predict": 220,
+            "top_p": 0.8,
+            "repeat_penalty": 1.05,
         }
 
         if additional_options:
