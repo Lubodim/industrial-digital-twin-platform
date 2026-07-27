@@ -17,6 +17,7 @@ from django.http import (
     HttpResponse,
     HttpResponseRedirect,
 )
+from django.core.paginator import Paginator
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
@@ -26,17 +27,37 @@ from django.views.generic import (
     ListView,
 )
 
+
 from core.request import (
     get_client_computer_name,
     get_client_ip,
     get_user_agent,
 )
+
+from ai_engine.local_ai.engineering_agent import (
+    EngineeringAgent,
+    EngineeringAgentError,
+)
+from ai_engine.experiment_research_service import (
+    ExperimentResearchService,
+)
+from ai_engine.provider_factory import (
+    ProviderFactory,
+)
+
+
 from experiments.forms import (
     ExperimentDeleteForm,
     ExperimentFilterForm,
     ExperimentForm,
+    ExperimentResearchQuestionForm,
 )
-from experiments.models import Experiment
+
+from experiments.models import (
+    Experiment, 
+    ExperimentChatMessage
+    )
+
 from experiments.services import (
     ExperimentDeleteError,
     ExperimentService,
@@ -192,15 +213,8 @@ class ExperimentListView(
 
         context.update(
             {
-                "filter_form": (
-                    self.get_filter_form()
-                ),
-                "statistics": (
-                    ExperimentService
-                    .get_statistics(
-                        filtered_queryset
-                    )
-                ),
+                "filter_form": (self.get_filter_form()),
+                "statistics": (ExperimentService.get_statistics(filtered_queryset)),
                 "page_title": "Experiments",
             }
         )
@@ -220,14 +234,11 @@ class ExperimentDetailView(
     template_name = (
         "experiments/experiment_detail.html"
     )
-
+        
     def get_context_data(
         self,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        """
-        Add related records and available actions.
-        """
 
         context = super().get_context_data(
             **kwargs
@@ -235,27 +246,67 @@ class ExperimentDetailView(
 
         experiment = self.object
 
+        chat_messages = list(
+            experiment.chat_messages.all().order_by(
+                "sequence"
+            )
+        )
+
+        question_groups = []
+        current_group = None
+
+        for chat_message in chat_messages:
+            if (
+                chat_message.role
+                == ExperimentChatMessage.Role.ENGINEER
+            ):
+                current_group = {
+                    "question": chat_message,
+                    "answers": [],
+                }
+
+                question_groups.append(
+                    current_group
+                )
+
+            elif current_group is not None:
+                current_group["answers"].append(
+                    chat_message
+                )
+
+        question_groups.reverse()
+
+        question_paginator = Paginator(
+            question_groups,
+            10,
+        )
+
+        question_page = (
+            question_paginator.get_page(
+                self.request.GET.get(
+                    "questions_page"
+                )
+            )
+        )
+
         context.update(
             {
-                "chat_messages": (
-                    experiment
-                    .chat_messages
-                    .all()
-                    .order_by("created_at")
+                "question_page": question_page,
+                "chat_message_count": len(
+                    chat_messages
                 ),
                 "proposals": (
-                    experiment
-                    .proposals
-                    .all()
-                    .order_by("sequence")
+                    experiment.proposals.all().order_by(
+                        "sequence"
+                    )
+                ),
+                "research_question_form": (
+                    ExperimentResearchQuestionForm()
                 ),
                 "can_update": (
                     experiment.status
-                    in ExperimentService
-                    .EDITABLE_STATUSES
-                    and experiment
-                    .result_twin_id
-                    is None
+                    in ExperimentService.EDITABLE_STATUSES
+                    and experiment.result_twin_id is None
                 ),
                 "can_delete": (
                     experiment.status
@@ -271,6 +322,200 @@ class ExperimentDetailView(
 
         return context
 
+class ExperimentResearchQuestionView(
+    LoginRequiredMixin,
+    ExperimentObjectMixin,
+    View,
+):
+    """
+    Send one engineering question to all configured external
+    AI research providers.
+    """
+
+    http_method_names = [
+        "post",
+    ]
+
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponseRedirect:
+        """
+        Validate the question and run the external research pipeline.
+        """
+
+        experiment = self.get_object()
+
+        form = ExperimentResearchQuestionForm(
+            request.POST
+        )
+
+        if not form.is_valid():
+            error_messages: list[str] = []
+
+            for field_errors in form.errors.values():
+                for error in field_errors:
+                    error_messages.append(
+                        str(error)
+                    )
+
+            messages.error(
+                request,
+                " ".join(error_messages)
+                or "Инженерният въпрос е невалиден.",
+            )
+
+            return redirect(
+                "experiments:detail",
+                pk=experiment.pk,
+            )
+
+        configured_providers = (
+            ProviderFactory.get_configured_providers()
+        )
+
+        if not configured_providers:
+            messages.error(
+                request,
+                (
+                    "Няма конфигурирани външни AI доставчици. "
+                    "Проверете API ключовете в .env файла."
+                ),
+            )
+
+            return redirect(
+                "experiments:detail",
+                pk=experiment.pk,
+            )
+
+        try:
+            result = ExperimentResearchService().run_question(
+                experiment=experiment,
+                engineer_question=(
+                    form.cleaned_data[
+                        "engineer_question"
+                    ]
+                ),
+                requested_by=request.user,
+                provider_names=configured_providers,
+            )
+
+        except Exception as error:
+            messages.error(
+                request,
+                (
+                    "Външното AI проучване не можа да бъде "
+                    "завършено: "
+                    f"{type(error).__name__}: {error}"
+                ),
+            )
+
+        else:
+            successful_count = len(
+                result.agent_result.successful_providers
+            )
+
+            failed_count = len(
+                result.agent_result.failed_providers
+            )
+
+            if successful_count:
+                messages.success(
+                    request,
+                    (
+                        "Инженерният въпрос беше изпратен към "
+                        f"{len(configured_providers)} външни AI "
+                        "доставчици. "
+                        f"Успешни отговори: {successful_count}. "
+                        f"Неуспешни: {failed_count}."
+                    ),
+                )
+            else:
+                messages.error(
+                    request,
+                    (
+                        "Нито един външен AI доставчик не върна "
+                        "успешен структуриран резултат."
+                    ),
+                )
+
+        return redirect(
+            "experiments:detail",
+            pk=experiment.pk,
+        )
+
+
+class ExperimentAnalyzeView(
+    LoginRequiredMixin,
+    ExperimentObjectMixin,
+    View,
+):
+    """
+    Start the local engineering analysis for one Experiment.
+
+    The analysis is executed synchronously by EngineeringAgent.
+    The generated structured result, InternalAnalysis record and
+    engineering proposals are persisted by the agent.
+    """
+
+    http_method_names = [
+        "post",
+    ]
+
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponseRedirect:
+        """
+        Run the local Ollama engineering analysis.
+        """
+
+        experiment = self.get_object()
+
+        try:
+            result = EngineeringAgent().analyze(
+                experiment=experiment,
+                requested_by=request.user,
+                persist=True,
+            )
+
+        except EngineeringAgentError as error:
+            messages.error(
+                request,
+                (
+                    "Локалният инженерeн анализ не можа "
+                    f"да бъде завършен: {error}"
+                ),
+            )
+
+        except Exception as error:
+            messages.error(
+                request,
+                (
+                    "Възникна неочаквана грешка при "
+                    "локалния инженерeн анализ: "
+                    f"{type(error).__name__}: {error}"
+                ),
+            )
+
+        else:
+            messages.success(
+                request,
+                (
+                    "Локалният инженерeн анализ приключи успешно. "
+                    f"Генерирани предложения: "
+                    f"{result.proposal_count}."
+                ),
+            )
+
+        return redirect(
+            "experiments:detail",
+            pk=experiment.pk,
+        )
 
 class ExperimentCreateView(
     LoginRequiredMixin,

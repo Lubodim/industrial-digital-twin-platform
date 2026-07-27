@@ -519,70 +519,190 @@
     </section>
 
 
-    <section class="card margin-bottom">
-        <div class="card-header">
-            <div>
-                <h2>Инженерен разговор</h2>
-
-                <span class="text-muted">
-                    Въпроси на инженера и отговори от AI доставчиците
-                </span>
-            </div>
+    <section id="engineering-conversation" class="card margin-bottom">
+    <div class="card-header">
+        <div>
+            <h2>Инженерен разговор</h2>
+            <span>
+                Въпроси на инженера и отговори от AI доставчиците
+            </span>
+        </div>
 
             <span class="badge">
-                {{ chat_messages|length }} съобщения
+                {{ chat_message_count }} съобщения
             </span>
         </div>
 
         <div class="card-body">
-            {% for chat_message in chat_messages %}
-                <article class="card margin-bottom">
-                    <div class="card-header">
-                        <div class="page-actions">
-                            {% if chat_message.role == "ENGINEER" %}
-                                <span class="badge badge-info">
-                                    Инженер
-                                </span>
+            <form
+                id="external-research-form"
+                method="post"
+                action="{% url 'experiments:research_question' experiment.pk %}"
+            >
+                {% csrf_token %}
 
-                            {% elif chat_message.role == "ASSISTANT" %}
-                                <span class="badge badge-success">
-                                    Асистент
-                                </span>
+                <div class="form-group margin-bottom">
+                    <label
+                        for="{{ research_question_form.engineer_question.id_for_label }}"
+                    >
+                        {{ research_question_form.engineer_question.label }}
+                    </label>
 
-                            {% else %}
-                                <span class="badge">
-                                    Система
-                                </span>
-                            {% endif %}
+                    {{ research_question_form.engineer_question }}
 
-                            {% if chat_message.provider != "NONE" %}
-                                <span class="badge">
-                                    {{ chat_message.get_provider_display }}
-                                </span>
-                            {% endif %}
+                    {% if research_question_form.engineer_question.help_text %}
+                        <span class="form-help">
+                            {{ research_question_form.engineer_question.help_text }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="alert alert-info margin-bottom">
+                    <span>
+                        Въпросът ще бъде изпратен автоматично към всички
+                        конфигурирани външни AI доставчици. Всеки успешен
+                        отговор ще бъде записан като структуриран JSON и
+                        показан в историята на експеримента.
+                    </span>
+                </div>
+
+                <div class="page-actions">
+                    <button
+                        id="external-research-button"
+                        type="submit"
+                        class="button button-primary"
+                    >
+                        Изпрати към всички външни AI агенти
+                    </button>
+                    <div
+                        id="external-research-progress"
+                        class="alert alert-info margin-top"
+                        hidden
+                    >
+                        <strong>
+                            Външното AI проучване се изпълнява…
+                        </strong>
+
+                        <p>
+                            Въпросът се изпраща към всички конфигурирани
+                            доставчици. Всеки доставчик има максимален срок
+                            от 90 секунди.
+                        </p>
+
+                        <p>
+                            Изминало време:
+                            <strong id="external-research-timer">
+                                00:00
+                            </strong>
+                        </p>
+
+                        <p class="text-muted">
+                            Моля, не затваряйте и не презареждайте страницата.
+                        </p>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="card-body">
+            {% for group in question_page %}
+                <details
+                    class="card margin-bottom"
+                    {% if forloop.first and question_page.number == 1 %}
+                        open
+                    {% endif %}
+                >
+                    <summary class="card-header">
+                        <div>
+                            <span class="badge badge-info">
+                                Инженерен въпрос
+                            </span>
+
+                            <strong>
+                                {{ group.question.content }}
+                            </strong>
                         </div>
 
                         <span class="text-muted">
-                            #{{ chat_message.sequence }}
+                            {{ group.answers|length }} отговора
                             ·
-                            {{ chat_message.created_at|date:"d.m.Y H:i" }}
+                            {{ group.question.created_at|date:"d.m.Y H:i" }}
                         </span>
-                    </div>
+                    </summary>
 
                     <div class="card-body">
-                        {{ chat_message.content|linebreaks }}
+                        {% for answer in group.answers %}
+                            <article class="card margin-bottom">
+                                <div class="card-header">
+                                    <div class="page-actions">
+                                        <span class="badge badge-success">
+                                            Асистент
+                                        </span>
+
+                                        {% if answer.provider != "NONE" %}
+                                            <span class="badge">
+                                                {{ answer.get_provider_display }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                    <span class="text-muted">
+                                        #{{ answer.sequence }}
+                                        ·
+                                        {{ answer.created_at|date:"d.m.Y H:i" }}
+                                    </span>
+                                </div>
+
+                                <div class="card-body">
+                                    {{ answer.content|linebreaks }}
+                                </div>
+                            </article>
+                        {% empty %}
+                            <div class="alert alert-warning">
+                                За този въпрос няма успешни AI отговори.
+                            </div>
+                        {% endfor %}
                     </div>
-                </article>
+                </details>
+
             {% empty %}
                 <div class="empty-state">
-                    <h3>Разговорът все още не е започнал</h3>
+                    <h3>
+                        Разговорът все още не е започнал
+                    </h3>
 
                     <p>
-                        Следващият етап ще добави форма за въпроси
+                        Въведете инженерен въпрос и го изпратете
                         към външните AI доставчици.
                     </p>
                 </div>
             {% endfor %}
+
+            {% if question_page.paginator.num_pages > 1 %}
+                <nav class="pagination margin-top">
+                    {% if question_page.has_previous %}
+                        <a
+                            class="button"
+                            href="?questions_page={{ question_page.previous_page_number }}#engineering-conversation"
+                        >
+                            Предишна
+                        </a>
+                    {% endif %}
+
+                    <span class="badge">
+                        Страница {{ question_page.number }}
+                        от {{ question_page.paginator.num_pages }}
+                    </span>
+
+                    {% if question_page.has_next %}
+                        <a
+                            class="button"
+                            href="?questions_page={{ question_page.next_page_number }}#engineering-conversation">
+                            Следваща
+                        </a>
+                    {% endif %}
+                </nav>
+            {% endif %}
         </div>
     </section>
 
@@ -934,6 +1054,55 @@
 
         <div class="card-body">
             <div class="page-actions">
+                {% if experiment.status == "ANALYZING" %}
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        disabled
+                    >
+                        Локалният AI анализ се изпълнява...
+                    </button>
+
+                {% elif not experiment.local_analysis %}
+                    <form
+                        method="post"
+                        action="{% url 'experiments:analyze' experiment.pk %}"
+                        onsubmit="
+                            return confirm(
+                                'Да бъде ли стартиран локалният инженерeн AI анализ? Процесът може да отнеме няколко минути.'
+                            );
+                        "
+                    >
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="button button-primary"
+                        >
+                            Стартирай локален AI анализ
+                        </button>
+                    </form>
+
+                {% else %}
+                    <form
+                        method="post"
+                        action="{% url 'experiments:analyze' experiment.pk %}"
+                        onsubmit="
+                            return confirm(
+                                'За този експеримент вече има локален анализ. Да бъде ли изпълнен нов анализ?'
+                            );
+                        "
+                    >
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="button button-secondary"
+                        >
+                            Повтори локалния AI анализ
+                        </button>
+                    </form>
+                {% endif %}
                 {% if can_update %}
                     <a
                         href="{% url 'experiments:update' experiment.pk %}"
@@ -977,4 +1146,73 @@
             </div>
         </div>
     </section>
+    <script>
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+                const form = document.getElementById(
+                    "external-research-form"
+                );
+
+                const button = document.getElementById(
+                    "external-research-button"
+                );
+
+                const progress = document.getElementById(
+                    "external-research-progress"
+                );
+
+                const timer = document.getElementById(
+                    "external-research-timer"
+                );
+
+                if (!form || !button || !progress || !timer) {
+                    return;
+                }
+
+                form.addEventListener(
+                    "submit",
+                    function () {
+                        button.disabled = true;
+                        button.textContent =
+                            "AI проучването се изпълнява…";
+
+                        progress.hidden = false;
+
+                        const startedAt = Date.now();
+
+                        window.setInterval(
+                            function () {
+                                const elapsedSeconds = Math.floor(
+                                    (
+                                        Date.now()
+                                        - startedAt
+                                    ) / 1000
+                                );
+
+                                const minutes = Math.floor(
+                                    elapsedSeconds / 60
+                                );
+
+                                const seconds =
+                                    elapsedSeconds % 60;
+
+                                timer.textContent =
+                                    String(minutes).padStart(
+                                        2,
+                                        "0"
+                                    )
+                                    + ":"
+                                    + String(seconds).padStart(
+                                        2,
+                                        "0"
+                                    );
+                            },
+                            1000
+                        );
+                    }
+                );
+            }
+        );
+    </script>
 {% endblock %}

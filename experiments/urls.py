@@ -5,21 +5,28 @@ URL configuration for Experiment management.
 from django.urls import path
 
 from experiments.views import (
+    ExperimentAnalyzeView,
     ExperimentArchiveView,
     ExperimentCreateView,
     ExperimentDeleteView,
     ExperimentDetailView,
     ExperimentListView,
     ExperimentUpdateView,
+    ExperimentResearchQuestionView,
 )
 
+
 app_name = "experiments"
+
 
 urlpatterns = [
     path("", ExperimentListView.as_view(), name="list", ),
     path("create/", ExperimentCreateView.as_view(), name="create", ),
     path("<uuid:pk>/", ExperimentDetailView.as_view(), name="detail", ),
+    path("<uuid:pk>/analyze/", ExperimentAnalyzeView.as_view(), name="analyze", ),
     path("<uuid:pk>/update/", ExperimentUpdateView.as_view(), name="update", ),
     path("<uuid:pk>/archive/", ExperimentArchiveView.as_view(), name="archive", ),
-    path("<uuid:pk>/delete/", ExperimentDeleteView.as_view(), name="delete", ),
+    path("<uuid:pk>/delete/", ExperimentDeleteView.as_view(), name="delete",),
+    path("<uuid:pk>/research/question/", ExperimentResearchQuestionView.as_view(), name="research_question", ),
 ]
+

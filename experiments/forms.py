@@ -160,6 +160,117 @@ class ExperimentForm(forms.ModelForm):
 
         return cleaned_data
 
+class ExperimentResearchQuestionForm(forms.Form):
+    """
+    Form for one engineering question sent automatically
+    to all configured external AI providers.
+    """
+
+    engineer_question = forms.CharField(
+        required=True,
+        label="Инженерен въпрос",
+        max_length=4000,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 5,
+                "placeholder": (
+                    "Например: Как може масата на детайла "
+                    "да бъде намалена с 10%, без съществена "
+                    "загуба на якост?"
+                ),
+            }
+        ),
+        help_text=(
+            "Въпросът ще бъде изпратен автоматично към "
+            "OpenAI, Gemini, Claude и Grok, когато техните "
+            "API ключове са конфигурирани."
+        ),
+    )
+
+    def clean_engineer_question(self) -> str:
+        """
+        Normalize and validate the engineering question.
+        """
+
+        question = str(
+            self.cleaned_data.get(
+                "engineer_question",
+                "",
+            )
+            or ""
+        ).strip()
+
+        question = " ".join(question.split())
+
+        if not question:
+            raise ValidationError(
+                "Инженерният въпрос е задължителен."
+            )
+
+        if len(question) < 10:
+            raise ValidationError(
+                "Инженерният въпрос трябва да съдържа "
+                "поне 10 символа."
+            )
+
+        return question
+
+class ExperimentResearchQuestionForm(forms.Form):
+    """
+    Form for sending one engineering question to all configured
+    external AI research providers.
+    """
+
+    engineer_question = forms.CharField(
+        required=True,
+        label="Инженерен въпрос",
+        max_length=4000,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 5,
+                "placeholder": (
+                    "Например: Как може масата на детайла да бъде "
+                    "намалена с 10%, без съществена загуба на якост?"
+                ),
+            }
+        ),
+        help_text=(
+            "Въпросът ще бъде изпратен автоматично към всички "
+            "конфигурирани външни AI доставчици."
+        ),
+    )
+
+    def clean_engineer_question(self) -> str:
+        """
+        Normalize and validate the engineering question.
+        """
+
+        question = str(
+            self.cleaned_data.get(
+                "engineer_question",
+                "",
+            )
+        ).strip()
+
+        question = " ".join(
+            question.split()
+        )
+
+        if not question:
+            raise ValidationError(
+                "Инженерният въпрос е задължителен."
+            )
+
+        if len(question) < 10:
+            raise ValidationError(
+                "Инженерният въпрос трябва да съдържа "
+                "поне 10 символа."
+            )
+
+        return question
+    
 
 class ExperimentFilterForm(forms.Form):
     """
