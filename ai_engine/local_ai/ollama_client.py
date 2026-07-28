@@ -90,7 +90,11 @@ class OllamaClient:
         think: bool | None = None,
         keep_alive: str | None = None,
         temperature: float | None = None,
+        max_output_tokens: int | None = None,
+
     ) -> None:
+        
+        
         self.host = (
             host
             or os.getenv(
@@ -146,6 +150,23 @@ class OllamaClient:
             )
         )
 
+        self.max_output_tokens = (
+            max_output_tokens
+            if max_output_tokens is not None
+            else int(
+                os.getenv(
+                    "OLLAMA_ANALYZER_MAX_OUTPUT_TOKENS",
+                    "4096",
+                )
+            )
+        )
+                
+        if self.max_output_tokens <= 0:
+            raise ValueError(
+                "OLLAMA_ANALYZER_MAX_OUTPUT_TOKENS "
+                "must be greater than zero."
+            )
+            
         if not self.model:
             raise ValueError(
                 "OLLAMA_MODEL cannot be empty."
@@ -277,7 +298,7 @@ class OllamaClient:
 
         options: dict[str, Any] = {
             "temperature": requested_temperature,
-            "num_predict": 220,
+            "num_predict": self.max_output_tokens,
             "top_p": 0.8,
             "repeat_penalty": 1.05,
         }
@@ -371,9 +392,7 @@ class OllamaClient:
 
         if response_schema is not None:
             try:
-                parsed_response = json.loads(
-                    response_text
-                )
+                parsed_response = json.loads(response_text)
 
                 if not isinstance(
                     parsed_response,
@@ -392,6 +411,12 @@ class OllamaClient:
                 json.JSONDecodeError,
                 ValueError,
             ) as exc:
+                print("=" * 80)
+                print("OLLAMA RAW RESPONSE")
+                print("=" * 80)
+                print(response_text)
+                print("=" * 80)
+                print(exc)
                 return OllamaResponse(
                     success=False,
                     model=requested_model,
