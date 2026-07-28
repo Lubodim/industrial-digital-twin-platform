@@ -1052,7 +1052,7 @@
             </div>
         </div>
 
-        <div class="card-body">
+                     <div class="card-body">
             <div class="page-actions">
                 {% if experiment.status == "ANALYZING" %}
                     <button
@@ -1065,19 +1065,18 @@
 
                 {% elif not experiment.local_analysis %}
                     <form
+                        id="local-analysis-form"
                         method="post"
                         action="{% url 'experiments:analyze' experiment.pk %}"
-                        onsubmit="
-                            return confirm(
-                                'Да бъде ли стартиран локалният инженерeн AI анализ? Процесът може да отнеме няколко минути.'
-                            );
-                        "
+                        data-confirm-message="Да бъде ли стартиран локалният инженерен AI анализ? Процесът може да отнеме няколко минути."
                     >
                         {% csrf_token %}
 
                         <button
+                            id="local-analysis-button"
                             type="submit"
                             class="button button-primary"
+                            data-loading-text="Ollama извършва локален анализ…"
                         >
                             Стартирай локален AI анализ
                         </button>
@@ -1085,24 +1084,65 @@
 
                 {% else %}
                     <form
+                        id="local-analysis-form"
                         method="post"
                         action="{% url 'experiments:analyze' experiment.pk %}"
-                        onsubmit="
-                            return confirm(
-                                'За този експеримент вече има локален анализ. Да бъде ли изпълнен нов анализ?'
-                            );
-                        "
+                        data-confirm-message="За този експеримент вече има локален анализ. Да бъде ли изпълнен нов анализ?"
                     >
                         {% csrf_token %}
 
                         <button
+                            id="local-analysis-button"
                             type="submit"
                             class="button button-secondary"
+                            data-loading-text="Ollama извършва нов анализ…"
                         >
                             Повтори локалния AI анализ
                         </button>
                     </form>
                 {% endif %}
+
+                <div
+                    id="local-analysis-progress"
+                    class="alert alert-info margin-top"
+                    hidden
+                    aria-live="polite"
+                >
+                    <div style="display: block; width: 100%;">
+                        <p style="margin: 0 0 12px 0;">
+                            <strong>
+                                Локалният инженерен AI анализ се изпълнява…
+                            </strong>
+                        </p>
+
+                        <p style="margin: 0 0 12px 0;">
+                            Ollama обработва инженерния разговор, външните AI
+                            резултати и данните на цифровия двойник.
+                        </p>
+
+                        <p style="margin: 0 0 12px 0;">
+                            Процесът може да отнеме няколко минути в зависимост
+                            от използвания локален модел и наличните системни
+                            ресурси.
+                        </p>
+
+                        <p style="margin: 0 0 12px 0;">
+                            Изминало време:
+                            <strong
+                                id="local-analysis-timer"
+                                style="display: inline;"
+                            >
+                                00:00
+                            </strong>
+                        </p>
+
+                        <p class="text-muted" style="margin: 0;">
+                            Моля, не затваряйте и не презареждайте страницата,
+                            докато анализът приключи.
+                        </p>
+                    </div>
+                </div>
+
                 {% if can_update %}
                     <a
                         href="{% url 'experiments:update' experiment.pk %}"
@@ -1150,68 +1190,171 @@
         document.addEventListener(
             "DOMContentLoaded",
             function () {
-                const form = document.getElementById(
-                    "external-research-form"
-                );
+                function formatElapsedTime(elapsedSeconds) {
+                    const hours = Math.floor(
+                        elapsedSeconds / 3600
+                    );
 
-                const button = document.getElementById(
-                    "external-research-button"
-                );
+                    const minutes = Math.floor(
+                        (elapsedSeconds % 3600) / 60
+                    );
 
-                const progress = document.getElementById(
-                    "external-research-progress"
-                );
+                    const seconds =
+                        elapsedSeconds % 60;
 
-                const timer = document.getElementById(
-                    "external-research-timer"
-                );
+                    const formattedMinutes =
+                        String(minutes).padStart(
+                            2,
+                            "0"
+                        );
 
-                if (!form || !button || !progress || !timer) {
-                    return;
-                }
+                    const formattedSeconds =
+                        String(seconds).padStart(
+                            2,
+                            "0"
+                        );
 
-                form.addEventListener(
-                    "submit",
-                    function () {
-                        button.disabled = true;
-                        button.textContent =
-                            "AI проучването се изпълнява…";
-
-                        progress.hidden = false;
-
-                        const startedAt = Date.now();
-
-                        window.setInterval(
-                            function () {
-                                const elapsedSeconds = Math.floor(
-                                    (
-                                        Date.now()
-                                        - startedAt
-                                    ) / 1000
-                                );
-
-                                const minutes = Math.floor(
-                                    elapsedSeconds / 60
-                                );
-
-                                const seconds =
-                                    elapsedSeconds % 60;
-
-                                timer.textContent =
-                                    String(minutes).padStart(
-                                        2,
-                                        "0"
-                                    )
-                                    + ":"
-                                    + String(seconds).padStart(
-                                        2,
-                                        "0"
-                                    );
-                            },
-                            1000
+                    if (hours > 0) {
+                        return (
+                            String(hours).padStart(
+                                2,
+                                "0"
+                            )
+                            + ":"
+                            + formattedMinutes
+                            + ":"
+                            + formattedSeconds
                         );
                     }
-                );
+
+                    return (
+                        formattedMinutes
+                        + ":"
+                        + formattedSeconds
+                    );
+                }
+
+
+                function initializeTimedForm(options) {
+                    const form = document.getElementById(
+                        options.formId
+                    );
+
+                    const button = document.getElementById(
+                        options.buttonId
+                    );
+
+                    const progress = document.getElementById(
+                        options.progressId
+                    );
+
+                    const timer = document.getElementById(
+                        options.timerId
+                    );
+
+                    if (
+                        !form
+                        || !button
+                        || !progress
+                        || !timer
+                    ) {
+                        return;
+                    }
+
+                    let submissionStarted = false;
+
+                    form.addEventListener(
+                        "submit",
+                        function (event) {
+                            if (submissionStarted) {
+                                event.preventDefault();
+                                return;
+                            }
+
+                            const confirmMessage =
+                                form.dataset.confirmMessage;
+
+                            if (
+                                confirmMessage
+                                && !window.confirm(confirmMessage)
+                            ) {
+                                event.preventDefault();
+                                return;
+                            }
+
+                            submissionStarted = true;
+
+                            button.disabled = true;
+                            button.setAttribute(
+                                "aria-disabled",
+                                "true"
+                            );
+
+                            button.classList.remove(
+                                "button-primary"
+                            );
+
+                            button.classList.add(
+                                "button-secondary"
+                            );
+
+                            const loadingText =
+                                button.dataset.loadingText;
+
+                            if (loadingText) {
+                                button.textContent =
+                                    loadingText;
+                            }
+
+                            progress.hidden = false;
+                            timer.textContent = "00:00";
+
+                            const startedAt = Date.now();
+
+                            window.setInterval(
+                                function () {
+                                    const elapsedSeconds =
+                                        Math.floor(
+                                            (
+                                                Date.now()
+                                                - startedAt
+                                            ) / 1000
+                                        );
+
+                                    timer.textContent =
+                                        formatElapsedTime(
+                                            elapsedSeconds
+                                        );
+                                },
+                                1000
+                            );
+                        }
+                    );
+                }
+
+
+                initializeTimedForm({
+                    formId:
+                        "external-research-form",
+                    buttonId:
+                        "external-research-button",
+                    progressId:
+                        "external-research-progress",
+                    timerId:
+                        "external-research-timer"
+                });
+
+
+                initializeTimedForm({
+                    formId:
+                        "local-analysis-form",
+                    buttonId:
+                        "local-analysis-button",
+                    progressId:
+                        "local-analysis-progress",
+                    timerId:
+                        "local-analysis-timer"
+                });
             }
         );
     </script>
