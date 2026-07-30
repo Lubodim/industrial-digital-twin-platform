@@ -1071,3 +1071,30 @@ textarea {
     text-align: left;
     cursor: pointer;
 }
+/* ==========================================
+   Local AI Spinner
+   ========================================== */
+
+.button-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.button-spinner {
+    width: 14px;
+    height: 14px;
+
+    border: 2px solid rgba(255,255,255,.35);
+    border-top-color: white;
+
+    border-radius: 50%;
+
+    animation: button-spinner-spin .8s linear infinite;
+}
+
+@keyframes button-spinner-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -12,6 +12,7 @@ from typing import Any
 from uuid import UUID
 
 from django.db import transaction
+from django.conf import settings
 from django.utils import timezone
 
 from ai_engine.local_ai.proposal_generator import (
@@ -75,7 +76,17 @@ class EngineeringAgent:
         ) = None,
     ) -> None:
         self.client = (
-            client or OllamaClient()
+            client or OllamaClient(
+                host=settings.OLLAMA_HOST,
+                model=settings.OLLAMA_ANALYZER_MODEL,
+                timeout_seconds=settings.OLLAMA_ANALYZER_TIMEOUT,
+                think=settings.OLLAMA_THINK,
+                keep_alive=settings.OLLAMA_KEEP_ALIVE,
+                temperature=settings.OLLAMA_TEMPERATURE,
+                max_output_tokens=(
+                    settings.OLLAMA_ANALYZER_MAX_OUTPUT_TOKENS
+                ),
+            )
         )
 
         self.prompt_builder = (

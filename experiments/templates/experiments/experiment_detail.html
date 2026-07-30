@@ -1301,10 +1301,13 @@
                             const loadingText =
                                 button.dataset.loadingText;
 
-                            if (loadingText) {
-                                button.textContent =
-                                    loadingText;
-                            }
+                            if (loadingText) button.innerHTML =
+                                '<span class="button-spinner"></span>' +
+                                '<span>' +
+                                loadingText +
+                                '</span>';
+
+                            button.classList.add("button-loading");
 
                             progress.hidden = false;
                             timer.textContent = "00:00";
