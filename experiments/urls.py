@@ -11,8 +11,9 @@ from experiments.views import (
     ExperimentDeleteView,
     ExperimentDetailView,
     ExperimentListView,
-    ExperimentUpdateView,
+    ExperimentProposalListView,
     ExperimentResearchQuestionView,
+    ExperimentUpdateView,
 )
 
 
@@ -28,5 +29,6 @@ urlpatterns = [
     path("<uuid:pk>/archive/", ExperimentArchiveView.as_view(), name="archive", ),
     path("<uuid:pk>/delete/", ExperimentDeleteView.as_view(), name="delete",),
     path("<uuid:pk>/research/question/", ExperimentResearchQuestionView.as_view(), name="research_question", ),
+    path("<uuid:pk>/proposals/", ExperimentProposalListView.as_view(), name="proposals",),
 ]
 

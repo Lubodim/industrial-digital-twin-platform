@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Инженерни предложения | {{ experiment.name }}
+{% endblock %}
+
+
+{% block content %}
+    <section class="page-header">
+        <div>
+            <div class="page-actions margin-bottom">
+                <span class="badge badge-info">
+                    Инженерна проверка
+                </span>
+
+                <span class="badge">
+                    {{ proposal_count }} предложения
+                </span>
+            </div>
+
+            <h1>Инженерни предложения</h1>
+
+            <p class="page-description">
+                Предложения от локалния AI за експеримент
+                <strong>{{ experiment.name }}</strong>
+                върху цифров двойник
+                <strong>{{ experiment.digital_twin.name }}</strong>.
+            </p>
+        </div>
+
+        <div class="page-actions">
+            <a
+                href="{% url 'experiments:detail' experiment.pk %}"
+                class="button button-secondary"
+            >
+                Назад към експеримента
+            </a>
+        </div>
+    </section>
+
+
+    <section
+        class="grid grid-four-columns margin-bottom"
+        aria-label="Статистика за предложенията"
+    >
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Общо
+            </span>
+
+            <strong class="statistic-value">
+                {{ proposal_count }}
+            </strong>
+
+            <span class="statistic-description">
+                Всички генерирани предложения
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Чакат преглед
+            </span>
+
+            <strong class="statistic-value">
+                {{ pending_count }}
+            </strong>
+
+            <span class="statistic-description">
+                Все още без инженерно решение
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Одобрени
+            </span>
+
+            <strong class="statistic-value">
+                {{ approved_count }}
+            </strong>
+
+            <span class="statistic-description">
+                Приети от инженер
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Отхвърлени
+            </span>
+
+            <strong class="statistic-value">
+                {{ rejected_count }}
+            </strong>
+
+            <span class="statistic-description">
+                Неприети предложения
+            </span>
+        </article>
+    </section>
+
+
+    <section class="card margin-bottom">
+        <div class="card-header">
+            <div>
+                <h2>Филтриране</h2>
+
+                <span class="text-muted">
+                    Филтрирайте по статус и категория
+                </span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <form method="get">
+                <div class="grid grid-two-columns">
+                    <div class="form-group">
+                        <label for="proposal-status-filter">
+                            Статус
+                        </label>
+
+                        <select
+                            id="proposal-status-filter"
+                            name="status"
+                        >
+                            <option value="">
+                                Всички статуси
+                            </option>
+
+                            {% for value, label in status_choices %}
+                                <option
+                                    value="{{ value }}"
+                                    {% if selected_status == value %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="proposal-category-filter">
+                            Категория
+                        </label>
+
+                        <select
+                            id="proposal-category-filter"
+                            name="category"
+                        >
+                            <option value="">
+                                Всички категории
+                            </option>
+
+                            {% for value, label in category_choices %}
+                                <option
+                                    value="{{ value }}"
+                                    {% if selected_category == value %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="page-actions margin-top">
+                    <button
+                        type="submit"
+                        class="button button-primary"
+                    >
+                        Приложи филтрите
+                    </button>
+
+                    <a
+                        href="{% url 'experiments:proposals' experiment.pk %}"
+                        class="button button-secondary"
+                    >
+                        Изчисти
+                    </a>
+                </div>
+            </form>
+        </div>
+    </section>
+
+
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>Списък с предложения</h2>
+
+                <span class="text-muted">
+                    Подробности, риск и очаквана полза
+                </span>
+            </div>
+
+            <span class="badge">
+                {{ proposal_page.paginator.count }} резултата
+            </span>
+        </div>
+
+        <div class="card-body">
+            {% for proposal in proposal_page %}
+                <article class="card margin-bottom">
+                    <div class="card-header">
+                        <div>
+                            <div class="page-actions margin-bottom">
+                                <span class="badge badge-info">
+                                    {{ proposal.get_category_display }}
+                                </span>
+
+                                {% if proposal.status == "APPROVED" %}
+                                    <span class="badge badge-success">
+                                        {{ proposal.get_status_display }}
+                                    </span>
+
+                                {% elif proposal.status == "REJECTED" %}
+                                    <span class="badge badge-danger">
+                                        {{ proposal.get_status_display }}
+                                    </span>
+
+                                {% elif proposal.status == "PENDING" %}
+                                    <span class="badge badge-warning">
+                                        {{ proposal.get_status_display }}
+                                    </span>
+
+                                {% else %}
+                                    <span class="badge">
+                                        {{ proposal.get_status_display }}
+                                    </span>
+                                {% endif %}
+
+                                {% if proposal.risk_level == "LOW" %}
+                                    <span class="badge badge-success">
+                                        Риск:
+                                        {{ proposal.get_risk_level_display }}
+                                    </span>
+
+                                {% elif proposal.risk_level == "MEDIUM" %}
+                                    <span class="badge badge-warning">
+                                        Риск:
+                                        {{ proposal.get_risk_level_display }}
+                                    </span>
+
+                                {% elif proposal.risk_level == "HIGH" %}
+                                    <span class="badge badge-danger">
+                                        Риск:
+                                        {{ proposal.get_risk_level_display }}
+                                    </span>
+
+                                {% else %}
+                                    <span class="badge">
+                                        Риск:
+                                        {{ proposal.get_risk_level_display }}
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <h3>
+                                #{{ proposal.sequence }}
+                                {{ proposal.title }}
+                            </h3>
+                        </div>
+
+                        <div class="text-right">
+                            <span class="statistic-label">
+                                Увереност
+                            </span>
+
+                            <strong class="statistic-value">
+                                {{ proposal.confidence_percent }}%
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <p>
+                            {{ proposal.description|linebreaksbr }}
+                        </p>
+
+                        <dl class="definition-list">
+                            <dt>Параметър</dt>
+
+                            <dd>
+                                {% if proposal.parameter_name %}
+                                    {{ proposal.parameter_name }}
+                                {% else %}
+                                    <span class="text-muted">
+                                        Не е посочен
+                                    </span>
+                                {% endif %}
+                            </dd>
+
+                            <dt>Текуща стойност</dt>
+
+                            <dd>
+                                {% if proposal.current_value != None %}
+                                    {{ proposal.current_value }}
+
+                                    {% if proposal.unit %}
+                                        {{ proposal.unit }}
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">
+                                        Няма данни
+                                    </span>
+                                {% endif %}
+                            </dd>
+
+                            <dt>Предложена стойност</dt>
+
+                            <dd>
+                                {% if proposal.proposed_value != None %}
+                                    {{ proposal.proposed_value }}
+
+                                    {% if proposal.unit %}
+                                        {{ proposal.unit }}
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">
+                                        Няма данни
+                                    </span>
+                                {% endif %}
+                            </dd>
+
+                            <dt>Причина</dt>
+
+                            <dd>
+                                {{ proposal.reason|linebreaksbr }}
+                            </dd>
+
+                            <dt>Очаквана полза</dt>
+
+                            <dd>
+                                {{ proposal.expected_benefit|linebreaksbr }}
+                            </dd>
+
+                            <dt>Необходима проверка</dt>
+
+                            <dd>
+                                {% if proposal.requires_validation %}
+                                    <span class="badge badge-warning">
+                                        Да
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-success">
+                                        Не
+                                    </span>
+                                {% endif %}
+                            </dd>
+
+                            <dt>Прегледано от</dt>
+
+                            <dd>
+                                {% if proposal.reviewed_by %}
+                                    {{ proposal.reviewed_by.get_full_name|default:proposal.reviewed_by.get_username }}
+
+                                    {% if proposal.reviewed_at %}
+                                        на
+                                        {{ proposal.reviewed_at|date:"d.m.Y H:i" }}
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">
+                                        Все още не е прегледано
+                                    </span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+
+                        {% if proposal.review_note %}
+                            <div class="alert alert-info margin-top">
+                                <span>
+                                    <strong>
+                                        Бележка от прегледа:
+                                    </strong>
+
+                                    {{ proposal.review_note }}
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </article>
+
+            {% empty %}
+                <div class="empty-state">
+                    <h3>
+                        Няма предложения, отговарящи на филтрите
+                    </h3>
+
+                    <p>
+                        Променете избраните филтри или се върнете
+                        към всички предложения.
+                    </p>
+                </div>
+            {% endfor %}
+
+
+            {% if proposal_page.paginator.num_pages > 1 %}
+                <nav class="pagination margin-top">
+                    {% if proposal_page.has_previous %}
+                        <a
+                            class="button button-secondary"
+                            href="?page={{ proposal_page.previous_page_number }}&status={{ selected_status }}&category={{ selected_category }}"
+                        >
+                            Предишна
+                        </a>
+                    {% endif %}
+
+                    <span class="badge">
+                        Страница {{ proposal_page.number }}
+                        от {{ proposal_page.paginator.num_pages }}
+                    </span>
+
+                    {% if proposal_page.has_next %}
+                        <a
+                            class="button button-secondary"
+                            href="?page={{ proposal_page.next_page_number }}&status={{ selected_status }}&category={{ selected_category }}"
+                        >
+                            Следваща
+                        </a>
+                    {% endif %}
+                </nav>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

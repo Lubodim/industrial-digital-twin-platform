@@ -54,10 +54,10 @@ from experiments.forms import (
 )
 
 from experiments.models import (
-    Experiment, 
-    ExperimentChatMessage
-    )
-
+    Experiment,
+    ExperimentChatMessage,
+    ExperimentProposal,
+)
 from experiments.services import (
     ExperimentDeleteError,
     ExperimentService,
@@ -295,11 +295,31 @@ class ExperimentDetailView(
                 "chat_message_count": len(
                     chat_messages
                 ),
-                "proposals": (
-                    experiment.proposals.all().order_by(
-                        "sequence"
-                    )
+                "proposal_count": (
+                    experiment.proposals.count()
                 ),
+                "pending_proposal_count": (
+                    experiment.proposals.filter(
+                        status=(
+                            ExperimentProposal.Status.PENDING
+                        )
+                    ).count()
+                ),
+                "approved_proposal_count": (
+                    experiment.proposals.filter(
+                        status=(
+                            ExperimentProposal.Status.APPROVED
+                        )
+                    ).count()
+                ),
+                "rejected_proposal_count": (
+                    experiment.proposals.filter(
+                        status=(
+                            ExperimentProposal.Status.REJECTED
+                        )
+                    ).count()
+                ),
+
                 "research_question_form": (
                     ExperimentResearchQuestionForm()
                 ),
@@ -321,6 +341,132 @@ class ExperimentDetailView(
         )
 
         return context
+
+class ExperimentProposalListView(
+    LoginRequiredMixin,
+    ExperimentObjectMixin,
+    DetailView,
+):
+    """
+    Display the engineering proposals generated for one experiment.
+    """
+
+    template_name = (
+        "experiments/proposal_list.html"
+    )
+
+    def get_context_data(
+        self,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """
+        Add paginated proposals and proposal statistics.
+        """
+
+        context = super().get_context_data(
+            **kwargs
+        )
+
+        experiment = self.object
+
+        proposals_queryset = (
+            experiment.proposals
+            .select_related(
+                "reviewed_by",
+                "internal_analysis",
+            )
+            .order_by(
+                "sequence"
+            )
+        )
+
+        status_filter = self.request.GET.get(
+            "status",
+            "",
+        )
+
+        category_filter = self.request.GET.get(
+            "category",
+            "",
+        )
+
+        if status_filter in {
+            choice[0]
+            for choice in ExperimentProposal.Status.choices
+        }:
+            proposals_queryset = (
+                proposals_queryset.filter(
+                    status=status_filter
+                )
+            )
+
+        if category_filter in {
+            choice[0]
+            for choice in ExperimentProposal.Category.choices
+        }:
+            proposals_queryset = (
+                proposals_queryset.filter(
+                    category=category_filter
+                )
+            )
+
+        paginator = Paginator(
+            proposals_queryset,
+            10,
+        )
+
+        proposal_page = paginator.get_page(
+            self.request.GET.get(
+                "page"
+            )
+        )
+
+        all_proposals = experiment.proposals.all()
+
+        context.update(
+            {
+                "proposal_page": proposal_page,
+                "proposal_count": (
+                    all_proposals.count()
+                ),
+                "pending_count": (
+                    all_proposals.filter(
+                        status=(
+                            ExperimentProposal.Status.PENDING
+                        )
+                    ).count()
+                ),
+                "approved_count": (
+                    all_proposals.filter(
+                        status=(
+                            ExperimentProposal.Status.APPROVED
+                        )
+                    ).count()
+                ),
+                "rejected_count": (
+                    all_proposals.filter(
+                        status=(
+                            ExperimentProposal.Status.REJECTED
+                        )
+                    ).count()
+                ),
+                "status_choices": (
+                    ExperimentProposal.Status.choices
+                ),
+                "category_choices": (
+                    ExperimentProposal.Category.choices
+                ),
+                "selected_status": status_filter,
+                "selected_category": category_filter,
+                "page_title": (
+                    f"Engineering proposals – "
+                    f"{experiment.name}"
+                ),
+            }
+        )
+
+        return context
+
 
 class ExperimentResearchQuestionView(
     LoginRequiredMixin,
