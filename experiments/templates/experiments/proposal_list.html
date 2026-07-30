@@ -140,6 +140,83 @@
         </article>
     </section>
 
+    {% if experiment.result_twin %}
+    <div class="alert alert-success margin-bottom">
+        <span>
+            <strong>
+                Резултатният цифров двойник вече е създаден:
+            </strong>
+
+            <a
+                href="{% url 'digital_twins:detail' experiment.result_twin.pk %}"
+            >
+                {{ experiment.result_twin.name }}
+            </a>
+        </span>
+    </div>
+
+    {% elif can_create_result_twin %}
+        <section class="card margin-bottom">
+            <div class="card-body">
+                <div class="page-header-row">
+                    <div>
+                        <h2>
+                            Създаване на резултатен цифров двойник
+                        </h2>
+
+                        <p class="text-muted">
+                            Всички предложения са прегледани.
+                            Новият двойник ще бъде копие на оригиналния,
+                            върху което ще се приложат само одобрените
+                            инженерни предложения.
+                        </p>
+                    </div>
+
+                    <form
+                        method="post"
+                        action="{% url 'experiments:create_result_twin' experiment.pk %}"
+                    >
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="button button-primary"
+                            onclick="return confirm(
+                                'Сигурни ли сте, че искате да създадете резултатния цифров двойник?'
+                            );"
+                        >
+                            Създай резултатен цифров двойник
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    {% elif pending_count == 0 and approved_count == 0 %}
+        <div class="alert alert-warning margin-bottom">
+            <span>
+                Не може да бъде създаден резултатен двойник,
+                защото няма нито едно одобрено предложение.
+            </span>
+        </div>
+
+    {% elif pending_count > 0 %}
+        <div class="alert alert-info margin-bottom">
+            <span>
+                Бутонът за създаване на цифров двойник ще се
+                появи след прегледа на всички предложения.
+                Остават: {{ pending_count }}.
+            </span>
+        </div>
+
+    {% elif not lock_owned_by_current_user %}
+        <div class="alert alert-warning margin-bottom">
+            <span>
+                Заключете експеримента, за да създадете
+                резултатния цифров двойник.
+            </span>
+        </div>
+    {% endif %}
 
     <section class="card margin-bottom">
         <div class="card-header">
@@ -419,6 +496,76 @@
                                     </strong>
 
                                     {{ proposal.review_note }}
+                                </span>
+                            </div>
+                        {% endif %}
+                                                {% if proposal.status == "PENDING" %}
+                            {% if lock_owned_by_current_user %}
+                                <div class="margin-top">
+                                    <form
+                                        method="post"
+                                        action="{% url 'experiments:proposal_review' experiment.pk proposal.pk %}"
+                                    >
+                                        {% csrf_token %}
+
+                                        <div class="form-group margin-bottom">
+                                            <label
+                                                for="review-note-{{ proposal.pk }}"
+                                            >
+                                                Бележка от инженера
+                                            </label>
+
+                                            <textarea
+                                                id="review-note-{{ proposal.pk }}"
+                                                name="review_note"
+                                                class="form-control"
+                                                rows="3"
+                                                maxlength="2000"
+                                                placeholder="Незадължителна бележка към инженерното решение..."
+                                            ></textarea>
+                                        </div>
+
+                                        <div class="page-actions">
+                                            <button
+                                                type="submit"
+                                                name="decision"
+                                                value="APPROVE"
+                                                class="button button-primary"
+                                            >
+                                                Одобри
+                                            </button>
+
+                                            <button
+                                                type="submit"
+                                                name="decision"
+                                                value="REJECT"
+                                                class="button button-danger"
+                                            >
+                                                Отхвърли
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                            {% else %}
+                                <div class="alert alert-warning margin-top">
+                                    <span>
+                                        Заключете експеримента, за да
+                                        одобрите или отхвърлите това
+                                        предложение.
+                                    </span>
+                                </div>
+                            {% endif %}
+
+                        {% else %}
+                            <div class="alert alert-info margin-top">
+                                <span>
+                                    <strong>
+                                        Решението е окончателно.
+                                    </strong>
+
+                                    Това предложение вече е
+                                    {{ proposal.get_status_display|lower }}.
                                 </span>
                             </div>
                         {% endif %}

@@ -319,3 +319,45 @@ class ExperimentDeleteForm(forms.Form):
         super().__init__(*args, **kwargs, )
 
         self.experiment = experiment
+
+
+class ProposalReviewForm(forms.Form):
+    """
+    Engineer approval or rejection form for one proposal.
+    """
+
+    decision = forms.ChoiceField(
+        choices=(
+            ("APPROVE", "Одобри"),
+            ("REJECT", "Отхвърли"),
+        ),
+        widget=forms.HiddenInput(),
+    )
+
+    review_note = forms.CharField(
+        required=False,
+        max_length=2000,
+        label="Бележка от инженера",
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": (
+                    "Незадължителна бележка към решението..."
+                ),
+            }
+        ),
+    )
+
+    def clean_review_note(self) -> str:
+        """
+        Normalize the engineer note.
+        """
+
+        return str(
+            self.cleaned_data.get(
+                "review_note",
+                "",
+            )
+            or ""
+        ).strip()

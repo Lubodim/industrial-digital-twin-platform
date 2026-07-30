@@ -51,7 +51,9 @@ from experiments.forms import (
     ExperimentFilterForm,
     ExperimentForm,
     ExperimentResearchQuestionForm,
+    ProposalReviewForm,
 )
+
 
 from experiments.models import (
     Experiment,
@@ -69,6 +71,16 @@ from experiments.services import (
     ExperimentService,
     ExperimentServiceError,
     ExperimentUpdateError,
+)
+
+from experiments.proposal_services import (
+    ProposalReviewError,
+    ProposalReviewService,
+)
+
+from experiments.twin_creation import (
+    TwinCreationError,
+    TwinCreationService,
 )
 
 
@@ -481,63 +493,241 @@ class ExperimentProposalListView(
 
         all_proposals = experiment.proposals.all()
 
+        pending_count = all_proposals.filter(
+            status=ExperimentProposal.Status.PENDING
+        ).count()
+
+        approved_count = all_proposals.filter(
+            status=ExperimentProposal.Status.APPROVED
+        ).count()
+
+        can_create_result_twin = (
+            experiment.status == Experiment.Status.APPROVED
+            and experiment.result_twin_id is None
+            and pending_count == 0
+            and approved_count > 0
+            and experiment.is_locked_by(
+                self.request.user
+            )
+        )
+        
         context.update(
             {
-                                "has_active_lock": (
-                    experiment.has_active_lock
-                ),
-                "lock_owned_by_current_user": (
-                    experiment.is_locked_by(
-                        self.request.user
-                    )
-                ),
-                "locked_by_another_user": (
-                    experiment.is_locked_by_another_user(
-                        self.request.user
-                    )
-                ),
+                "has_active_lock": (experiment.has_active_lock),
+                "lock_owned_by_current_user": (experiment.is_locked_by(self.request.user)),
+                "locked_by_another_user": (experiment.is_locked_by_another_user(
+                        self.request.user)),
                 "is_read_only": (not experiment.is_locked_by(self.request.user)),
                 "proposal_page": proposal_page,
-                "proposal_count": (
-                    all_proposals.count()
-                ),
-                "pending_count": (
-                    all_proposals.filter(
-                        status=(
-                            ExperimentProposal.Status.PENDING
-                        )
-                    ).count()
-                ),
-                "approved_count": (
-                    all_proposals.filter(
-                        status=(
-                            ExperimentProposal.Status.APPROVED
-                        )
-                    ).count()
-                ),
-                "rejected_count": (
-                    all_proposals.filter(
-                        status=(
-                            ExperimentProposal.Status.REJECTED
-                        )
-                    ).count()
-                ),
-                "status_choices": (
-                    ExperimentProposal.Status.choices
-                ),
-                "category_choices": (
-                    ExperimentProposal.Category.choices
-                ),
+                "proposal_count": (all_proposals.count()),
+                "pending_count": pending_count,
+                "approved_count": approved_count,
+                "rejected_count": (all_proposals.filter(status=(ExperimentProposal.Status.REJECTED)).count()),
+                "status_choices": (ExperimentProposal.Status.choices),
+                "category_choices": (ExperimentProposal.Category.choices),
                 "selected_status": status_filter,
                 "selected_category": category_filter,
-                "page_title": (
-                    f"Engineering proposals – "
-                    f"{experiment.name}"
-                ),
+                "page_title": (f"Engineering proposals – {experiment.name}"),
+                "can_create_result_twin": can_create_result_twin,
             }
         )
 
         return context
+
+class ExperimentProposalReviewView(
+    LoginRequiredMixin,
+    ExperimentLockRequiredMixin,
+    ExperimentObjectMixin,
+    View,
+):
+    """
+    Approve or reject one engineering proposal.
+    """
+
+    http_method_names = [
+        "post",
+    ]
+
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponseRedirect:
+        experiment = self.get_object()
+
+        lock_response = self.ensure_experiment_lock(
+            request=request,
+            experiment=experiment,
+        )
+
+        if lock_response is not None:
+            return lock_response
+
+        proposal = (
+            ExperimentProposal.objects
+            .filter(
+                pk=kwargs.get("proposal_pk"),
+                experiment=experiment,
+            )
+            .first()
+        )
+
+        if proposal is None:
+            raise Http404(
+                "Инженерното предложение не е намерено."
+            )
+
+        form = ProposalReviewForm(
+            request.POST
+        )
+
+        if not form.is_valid():
+            messages.error(
+                request,
+                "Подаденото инженерно решение е невалидно.",
+            )
+
+            return redirect(
+                "experiments:proposals",
+                pk=experiment.pk,
+            )
+
+        decision = form.cleaned_data[
+            "decision"
+        ]
+
+        review_note = form.cleaned_data[
+            "review_note"
+        ]
+
+        service = ProposalReviewService()
+
+        try:
+            if decision == "APPROVE":
+                service.approve(
+                    proposal=proposal,
+                    reviewed_by=request.user,
+                    note=review_note,
+                )
+
+                messages.success(
+                    request,
+                    (
+                        f"Предложение №{proposal.sequence} "
+                        "е одобрено."
+                    ),
+                )
+
+            elif decision == "REJECT":
+                service.reject(
+                    proposal=proposal,
+                    reviewed_by=request.user,
+                    note=review_note,
+                )
+
+                messages.success(
+                    request,
+                    (
+                        f"Предложение №{proposal.sequence} "
+                        "е отхвърлено."
+                    ),
+                )
+
+            else:
+                messages.error(
+                    request,
+                    "Непознато инженерно решение.",
+                )
+
+        except ProposalReviewError as error:
+            messages.error(
+                request,
+                str(error),
+            )
+
+        return redirect(
+            "experiments:proposals",
+            pk=experiment.pk,
+        )
+
+class ExperimentCreateResultTwinView(
+    LoginRequiredMixin,
+    ExperimentLockRequiredMixin,
+    ExperimentObjectMixin,
+    View,
+):
+    """
+    Create a derived Digital Twin from all approved proposals.
+    """
+
+    http_method_names = [
+        "post",
+    ]
+
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponseRedirect:
+        experiment = self.get_object()
+
+        lock_response = self.ensure_experiment_lock(
+            request=request,
+            experiment=experiment,
+        )
+
+        if lock_response is not None:
+            return lock_response
+
+        metadata = get_request_metadata(
+            request
+        )
+
+        service = TwinCreationService()
+
+        try:
+            result = service.create(
+                experiment=experiment,
+                created_by=request.user,
+                ip_address=metadata[
+                    "ip_address"
+                ],
+                computer_name=(
+                    metadata["computer_name"]
+                    or ""
+                ),
+                user_agent=(
+                    metadata["user_agent"]
+                    or ""
+                ),
+            )
+
+        except TwinCreationError as error:
+            messages.error(
+                request,
+                str(error),
+            )
+
+            return redirect(
+                "experiments:proposals",
+                pk=experiment.pk,
+            )
+
+        messages.success(
+            request,
+            (
+                "Резултатният цифров двойник "
+                f"„{result.result_twin.name}“ "
+                "е създаден успешно."
+            ),
+        )
+
+        return redirect(
+            "digital_twins:detail",
+            pk=result.result_twin.pk,
+        )
 
 class ExperimentAcquireLockView(
     LoginRequiredMixin,
