@@ -135,6 +135,25 @@ class Experiment(models.Model):
         related_name="approved_experiments",
     )
 
+    locked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="locked_experiments",
+    )
+
+    locked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    lock_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
     ip_address = models.GenericIPAddressField(
         null=True,
         blank=True,
@@ -172,6 +191,45 @@ class Experiment(models.Model):
         null=True,
         blank=True,
     )
+
+    @property
+    def has_active_lock(self) -> bool:
+        """
+        Return True when the experiment has a non-expired lock.
+        """
+
+        if (
+            self.locked_by_id is None
+            or self.lock_expires_at is None
+        ):
+            return False
+
+        from django.utils import timezone
+
+        return self.lock_expires_at > timezone.now()
+
+    def is_locked_by(self, user) -> bool:
+        """
+        Return True when the active lock belongs to the supplied user.
+        """
+
+        if not getattr(user, "is_authenticated", False):
+            return False
+
+        return (
+            self.has_active_lock
+            and self.locked_by_id == user.pk
+        )
+
+    def is_locked_by_another_user(self, user) -> bool:
+        """
+        Return True when another engineer currently owns the lock.
+        """
+
+        return (
+            self.has_active_lock
+            and self.locked_by_id != getattr(user, "pk", None)
+        )
 
     def clean(self) -> None:
         """
@@ -248,9 +306,23 @@ class Experiment(models.Model):
         ).exists()
 
         return has_engineer_message and has_external_response
-
     class Meta:
         ordering = ["-created_at"]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "locked_by",
+                ],
+                condition=models.Q(
+                    locked_by__isnull=False
+                ),
+                name=(
+                    "unique_active_experiment_lock_per_engineer"
+                ),
+            ),
+        ]
+
         indexes = [
             models.Index(
                 fields=[
@@ -261,6 +333,12 @@ class Experiment(models.Model):
             models.Index(
                 fields=[
                     "status",
+                ]
+            ),
+            models.Index(
+                fields=[
+                    "locked_by",
+                    "lock_expires_at",
                 ]
             ),
         ]

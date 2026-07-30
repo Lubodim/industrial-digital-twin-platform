@@ -124,6 +124,65 @@
 
     </section>
 
+        {% if lock_owned_by_current_user %}
+        <div class="alert alert-success margin-bottom">
+            <span>
+                <strong>Заключен за работа от вас.</strong>
+                Друг инженер може да разглежда експеримента,
+                но не може да го променя.
+                Заключването изтича на
+                {{ experiment.lock_expires_at|date:"d.m.Y H:i" }}.
+            </span>
+
+            <form
+                method="post"
+                action="{% url 'experiments:release_lock' experiment.pk %}"
+            >
+                {% csrf_token %}
+
+                <button
+                    type="submit"
+                    class="button button-secondary"
+                >
+                    Освободи експеримента
+                </button>
+            </form>
+        </div>
+
+    {% elif locked_by_another_user %}
+        <div class="alert alert-warning margin-bottom">
+            <span>
+                <strong>Режим само за преглед.</strong>
+                Експериментът в момента се обработва от
+                {{ experiment.locked_by.get_full_name|default:experiment.locked_by.get_username }}.
+                Заключен е до
+                {{ experiment.lock_expires_at|date:"d.m.Y H:i" }}.
+            </span>
+        </div>
+
+    {% else %}
+        <div class="alert alert-info margin-bottom">
+            <span>
+                Експериментът не е заключен.
+                За да изпращате въпроси, стартирате анализи
+                или редактирате данните, първо го заключете.
+            </span>
+
+            <form
+                method="post"
+                action="{% url 'experiments:acquire_lock' experiment.pk %}"
+            >
+                {% csrf_token %}
+
+                <button
+                    type="submit"
+                    class="button button-primary"
+                >
+                    Заключи за работа
+                </button>
+            </form>
+        </div>
+    {% endif %}
 
     <section
         class="grid grid-four-columns margin-bottom"
@@ -535,6 +594,16 @@
         </div>
 
         <div class="card-body">
+                        {% if is_read_only %}
+                <div class="alert alert-warning margin-bottom">
+                    <span>
+                        Инженерният разговор е само за преглед.
+                        Заключете експеримента, за да изпратите
+                        нов въпрос.
+                    </span>
+                </div>
+            {% endif %}
+            {% if lock_owned_by_current_user %}
             <form
                 id="external-research-form"
                 method="post"
@@ -573,6 +642,8 @@
                         type="submit"
                         class="button button-primary"
                         data-loading-text="Изпращане към външните AI агенти…"
+                        {% if is_read_only %}disabled{% endif %}
+
                     >
                         Изпрати към всички външни AI агенти
                     </button>
@@ -621,6 +692,19 @@
                     </div>
                 </div>
             </form>
+            {% else %}
+                <div class="form-group margin-bottom">
+                    <label>
+                        Инженерен въпрос
+                    </label>
+
+                    <textarea
+                        rows="4"
+                        disabled
+                        placeholder="Заключете експеримента, за да въведете въпрос."
+                    ></textarea>
+                </div>
+            {% endif %}
         </div>
 
         <div class="card-body">
@@ -950,6 +1034,15 @@
 
                      <div class="card-body">
             <div class="page-actions">
+                {% if is_read_only %}
+                    <div class="alert alert-warning">
+                        <span>
+                            <strong>Режим само за преглед.</strong>
+                            Заключете експеримента, за да стартирате
+                            локалния AI анализ.
+                        </span>
+                    </div>
+                {% else %}
                 {% if experiment.status == "ANALYZING" %}
                     <button
                         type="button"
@@ -1038,7 +1131,7 @@
                         </p>
                     </div>
                 </div>
-
+                {% endif %}
                 {% if can_update %}
                     <a
                         href="{% url 'experiments:update' experiment.pk %}"

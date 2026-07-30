@@ -38,7 +38,46 @@
             </a>
         </div>
     </section>
+        {% if lock_owned_by_current_user %}
+        <div class="alert alert-success margin-bottom">
+            <span>
+                Вие държите заключването на експеримента.
+                Можете да преглеждате и по-късно да одобрявате
+                или отхвърляте предложенията.
+            </span>
+        </div>
 
+    {% elif locked_by_another_user %}
+        <div class="alert alert-warning margin-bottom">
+            <span>
+                Режим само за преглед.
+                Експериментът се обработва от
+                {{ experiment.locked_by.get_full_name|default:experiment.locked_by.get_username }}.
+            </span>
+        </div>
+
+    {% else %}
+        <div class="alert alert-info margin-bottom">
+            <span>
+                За да вземате инженерни решения,
+                първо заключете експеримента.
+            </span>
+
+            <form
+                method="post"
+                action="{% url 'experiments:acquire_lock' experiment.pk %}"
+            >
+                {% csrf_token %}
+
+                <button
+                    type="submit"
+                    class="button button-primary"
+                >
+                    Заключи експеримента
+                </button>
+            </form>
+        </div>
+    {% endif %}
 
     <section
         class="grid grid-four-columns margin-bottom"

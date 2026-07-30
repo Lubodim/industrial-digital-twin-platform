@@ -58,6 +58,12 @@ from experiments.models import (
     ExperimentChatMessage,
     ExperimentProposal,
 )
+
+from experiments.locking import (
+    ExperimentLockError,
+    ExperimentLockService,
+)
+
 from experiments.services import (
     ExperimentDeleteError,
     ExperimentService,
@@ -81,6 +87,39 @@ def get_request_metadata(
         "user_agent": get_user_agent(request),
     }
 
+class ExperimentLockRequiredMixin:
+    """
+    Require the current engineer to own the experiment lock.
+    """
+
+    def ensure_experiment_lock(
+        self,
+        *,
+        request: HttpRequest,
+        experiment: Experiment,
+    ) -> HttpResponse | None:
+        try:
+            ExperimentLockService.assert_owned(
+                experiment=experiment,
+                user=request.user,
+            )
+        except ExperimentLockError as error:
+            messages.error(
+                request,
+                str(error),
+            )
+
+            return redirect(
+                "experiments:detail",
+                pk=experiment.pk,
+            )
+
+        ExperimentLockService.refresh(
+            experiment=experiment,
+            user=request.user,
+        )
+
+        return None
 
 class ExperimentObjectMixin:
     """
@@ -323,19 +362,38 @@ class ExperimentDetailView(
                 "research_question_form": (
                     ExperimentResearchQuestionForm()
                 ),
+                                "has_active_lock": (
+                    experiment.has_active_lock
+                ),
+                "lock_owned_by_current_user": (
+                    experiment.is_locked_by(
+                        self.request.user
+                    )
+                ),
+                "locked_by_another_user": (
+                    experiment.is_locked_by_another_user(
+                        self.request.user
+                    )
+                ),
+                "is_read_only": (
+                    not experiment.is_locked_by(
+                        self.request.user
+                    )
+                ),
+                
                 "can_update": (
                     experiment.status
                     in ExperimentService.EDITABLE_STATUSES
                     and experiment.result_twin_id is None
-                ),
+                    and experiment.is_locked_by(self.request.user)),
                 "can_delete": (
                     experiment.status
                     == Experiment.Status.DRAFT
-                ),
+                    and experiment.is_locked_by(self.request.user)),
                 "can_archive": (
                     experiment.status
                     != Experiment.Status.ARCHIVED
-                ),
+                    and experiment.is_locked_by(self.request.user)),
                 "page_title": experiment.name,
             }
         )
@@ -425,6 +483,20 @@ class ExperimentProposalListView(
 
         context.update(
             {
+                                "has_active_lock": (
+                    experiment.has_active_lock
+                ),
+                "lock_owned_by_current_user": (
+                    experiment.is_locked_by(
+                        self.request.user
+                    )
+                ),
+                "locked_by_another_user": (
+                    experiment.is_locked_by_another_user(
+                        self.request.user
+                    )
+                ),
+                "is_read_only": (not experiment.is_locked_by(self.request.user)),
                 "proposal_page": proposal_page,
                 "proposal_count": (
                     all_proposals.count()
@@ -467,12 +539,101 @@ class ExperimentProposalListView(
 
         return context
 
-
-class ExperimentResearchQuestionView(
+class ExperimentAcquireLockView(
     LoginRequiredMixin,
     ExperimentObjectMixin,
     View,
 ):
+    """
+    Lock one experiment for exclusive engineering work.
+    """
+
+    http_method_names = [
+        "post",
+    ]
+
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponseRedirect:
+        experiment = self.get_object()
+
+        try:
+            ExperimentLockService.acquire(
+                experiment=experiment,
+                user=request.user,
+            )
+        except ExperimentLockError as error:
+            messages.error(
+                request,
+                str(error),
+            )
+        else:
+            messages.success(
+                request,
+                (
+                    "Експериментът е заключен за работа от вас. "
+                    "Заключването е валидно 30 минути и се "
+                    "удължава при всяко действие."
+                ),
+            )
+
+        return redirect(
+            "experiments:detail",
+            pk=experiment.pk,
+        )
+class ExperimentReleaseLockView(
+    LoginRequiredMixin,
+    ExperimentObjectMixin,
+    View,
+):
+    """
+    Release the current experiment lock.
+    """
+
+    http_method_names = [
+        "post",
+    ]
+
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponseRedirect:
+        experiment = self.get_object()
+
+        try:
+            ExperimentLockService.release(
+                experiment=experiment,
+                user=request.user,
+                force=False,
+            )
+        except ExperimentLockError as error:
+            messages.error(
+                request,
+                str(error),
+            )
+        else:
+            messages.success(
+                request,
+                "Експериментът е освободен.",
+            )
+
+        return redirect(
+            "experiments:detail",
+            pk=experiment.pk,
+        )
+        
+class ExperimentResearchQuestionView(
+    LoginRequiredMixin,
+    ExperimentLockRequiredMixin,
+    ExperimentObjectMixin,
+    View,
+):
+    
     """
     Send one engineering question to all configured external
     AI research providers.
@@ -493,6 +654,11 @@ class ExperimentResearchQuestionView(
         """
 
         experiment = self.get_object()
+        
+        lock_response = self.ensure_experiment_lock(request=request, experiment=experiment,)
+
+        if lock_response is not None:
+            return lock_response
 
         form = ExperimentResearchQuestionForm(
             request.POST
@@ -595,9 +761,11 @@ class ExperimentResearchQuestionView(
 
 class ExperimentAnalyzeView(
     LoginRequiredMixin,
+    ExperimentLockRequiredMixin,
     ExperimentObjectMixin,
     View,
 ):
+    
     """
     Start the local engineering analysis for one Experiment.
 
@@ -776,9 +944,11 @@ class ExperimentCreateView(
 
 class ExperimentUpdateView(
     LoginRequiredMixin,
+    ExperimentLockRequiredMixin,
     ExperimentObjectMixin,
     FormView,
 ):
+    
     """
     Update an editable Experiment.
     """
@@ -799,6 +969,14 @@ class ExperimentUpdateView(
         """
 
         self.object = self.get_object()
+        
+        lock_response = self.ensure_experiment_lock(
+            request=request,
+            experiment=self.object,
+        )
+
+        if lock_response is not None:
+            return lock_response
 
         try:
             ExperimentService.validate_before_update(
@@ -921,9 +1099,11 @@ class ExperimentUpdateView(
 
 class ExperimentArchiveView(
     LoginRequiredMixin,
+    ExperimentLockRequiredMixin,
     ExperimentObjectMixin,
     View,
 ):
+    
     """
     Archive an Experiment through a POST request.
     """
@@ -943,6 +1123,14 @@ class ExperimentArchiveView(
         """
 
         experiment = self.get_object()
+        
+        lock_response = self.ensure_experiment_lock(
+            request=request,
+            experiment=experiment,
+        )
+
+        if lock_response is not None:
+            return lock_response
 
         try:
             archived_experiment = (
@@ -982,9 +1170,12 @@ class ExperimentArchiveView(
 
 class ExperimentDeleteView(
     LoginRequiredMixin,
+    ExperimentLockRequiredMixin,
     ExperimentObjectMixin,
     FormView,
 ):
+    
+
     """
     Permanently delete an unused Draft Experiment.
     """
@@ -1006,6 +1197,14 @@ class ExperimentDeleteView(
         """
 
         self.object = self.get_object()
+
+        lock_response = self.ensure_experiment_lock(
+            request=request,
+            experiment=self.object,
+        )
+
+        if lock_response is not None:
+            return lock_response
 
         try:
             ExperimentService.validate_before_delete(
