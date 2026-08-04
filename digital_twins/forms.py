@@ -12,6 +12,7 @@ from django.db.models import QuerySet
 
 from digital_twins.models import (
     DigitalTwin,
+    DigitalTwinFile,
     MaterialCatalog,
     TechnologyCatalog,
 )
@@ -491,3 +492,102 @@ class DigitalTwinDeleteForm(forms.Form):
             }
         ),
     )
+class DigitalTwinFileForm(forms.ModelForm):
+    """Upload an additional file to an existing Digital Twin."""
+
+    MAX_FILE_SIZE = 100 * 1024 * 1024
+
+    ALLOWED_EXTENSIONS = {
+        DigitalTwinFile.FileType.CAD: {
+            ".step", ".stp", ".iges", ".igs", ".stl",
+            ".obj", ".dxf", ".dwg", ".fcstd", ".zip",
+        },
+        DigitalTwinFile.FileType.DRAWING: {
+            ".pdf", ".dxf", ".dwg", ".png", ".jpg", ".jpeg",
+        },
+        DigitalTwinFile.FileType.IMAGE: {
+            ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp",
+        },
+        DigitalTwinFile.FileType.DOCUMENT: {
+            ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+            ".txt", ".csv", ".json", ".zip",
+        },
+    }
+
+    class Meta:
+        model = DigitalTwinFile
+        fields = ("file_type", "file", "description")
+
+        labels = {
+            "file_type": "Тип на файла",
+            "file": "Файл",
+            "description": "Описание",
+        }
+
+        widgets = {
+            "file_type": forms.Select(attrs={"class": "form-select"}),
+            "file": forms.ClearableFileInput(attrs={"class": "form-control"}),
+            "description": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Например: STL модел за 3D визуализация",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["file_type"].choices = (
+            ("", "Изберете тип"),
+            (DigitalTwinFile.FileType.CAD, "CAD модел"),
+            (DigitalTwinFile.FileType.DRAWING, "Чертеж"),
+            (DigitalTwinFile.FileType.IMAGE, "Изображение"),
+            (DigitalTwinFile.FileType.DOCUMENT, "Документ"),
+        )
+
+        self.fields["file"].help_text = (
+            "Максимален размер: 100 MB. За интерактивната "
+            "3D визуализация използвайте STL файл."
+        )
+
+        self.fields["description"].required = False
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get("file")
+
+        if not uploaded_file:
+            raise ValidationError("Изберете файл за качване.")
+
+        if uploaded_file.size > self.MAX_FILE_SIZE:
+            raise ValidationError(
+                "Файлът е по-голям от разрешените 100 MB."
+            )
+
+        return uploaded_file
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        uploaded_file = cleaned_data.get("file")
+        file_type = cleaned_data.get("file_type")
+
+        if not uploaded_file or not file_type:
+            return cleaned_data
+
+        extension = Path(uploaded_file.name).suffix.lower()
+        allowed_extensions = self.ALLOWED_EXTENSIONS.get(file_type, set())
+
+        if extension not in allowed_extensions:
+            readable_extensions = ", ".join(sorted(allowed_extensions))
+
+            self.add_error(
+                "file",
+                (
+                    f"Форматът „{extension or 'без разширение'}“ "
+                    f"не е разрешен за избрания тип. "
+                    f"Допустими формати: {readable_extensions}."
+                ),
+            )
+
+        return cleaned_data

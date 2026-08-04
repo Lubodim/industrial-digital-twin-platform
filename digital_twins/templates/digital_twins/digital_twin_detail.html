@@ -1207,8 +1207,8 @@
                             rel="noopener noreferrer"
                         >
                             <img
-                                src="{{ image_file.file.url }}"
-                                alt="{{ twin.name }}"
+                                src="{{ digital_twin.image_file.url }}"
+                                alt="{{ digital_twin.name }}"
                                 class="img-fluid rounded"
                                 style="
                                     width:100%;
@@ -1324,7 +1324,7 @@
     </div>
 
 
-    <section class="card margin-bottom">
+    <section id="additional-files" class="card margin-bottom">
         <div class="card-header">
             <div>
                 <h2>
@@ -1336,9 +1336,18 @@
                 </span>
             </div>
 
-            <span class="badge">
-                {{ files|length }}
-            </span>
+            <div class="page-actions">
+                <span class="badge">
+                    {{ files|length }}
+                </span>
+
+                <a
+                    href="{% url 'digital_twins:file_create' digital_twin.pk %}"
+                    class="button button-primary button-small"
+                >
+                    Качи файл
+                </a>
+            </div>
         </div>
 
         <div class="card-body">
@@ -1456,7 +1465,6 @@
 
 
     <section class="card margin-bottom">
-            <section class="card margin-bottom">
         <div class="card-header">
             <div>
                 <h2>

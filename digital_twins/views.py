@@ -35,9 +35,11 @@ from django.views.generic import (
 
 from digital_twins.forms import (
     DigitalTwinDeleteForm,
+    DigitalTwinFileForm,
     DigitalTwinFilterForm,
     DigitalTwinForm,
 )
+
 from digital_twins.models import DigitalTwin
 from digital_twins.services import (
     DigitalTwinDeleteError,
@@ -484,6 +486,55 @@ class DigitalTwinDetailView(
 
         return context
 
+class DigitalTwinFileCreateView(
+    LoginRequiredMixin,
+    DigitalTwinObjectMixin,
+    FormView,
+):
+    """Upload an additional file to one Digital Twin."""
+
+    template_name = "digital_twins/digital_twin_file_form.html"
+    form_class = DigitalTwinFileForm
+
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        self.digital_twin = self.get_object()
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form: DigitalTwinFileForm) -> HttpResponse:
+        twin_file = form.save(commit=False)
+        twin_file.digital_twin = self.digital_twin
+        twin_file.uploaded_by = self.request.user
+        twin_file.save()
+
+        messages.success(
+            self.request,
+            f"Файлът „{twin_file.file.name.split('/')[-1]}“ е качен успешно.",
+        )
+
+        return redirect(
+            reverse(
+                "digital_twins:detail",
+                kwargs={"pk": self.digital_twin.pk},
+            )
+            + "#additional-files"
+        )
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+
+        context.update(
+            {
+                "digital_twin": self.digital_twin,
+                "page_title": "Качване на допълнителен файл",
+                "cancel_url": reverse(
+                    "digital_twins:detail",
+                    kwargs={"pk": self.digital_twin.pk},
+                )
+                + "#additional-files",
+            }
+        )
+
+        return context
 
 class DigitalTwinCreateView(
     LoginRequiredMixin,

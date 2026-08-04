@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Качване на файл | Industrial Digital Twin Platform
+{% endblock %}
+
+
+{% block content %}
+    <section class="page-header">
+        <div>
+            <div class="page-actions margin-bottom">
+                <span class="badge">
+                    {{ digital_twin.part_number }}
+                </span>
+            </div>
+
+            <h1>
+                Качване на допълнителен файл
+            </h1>
+
+            <p class="page-description">
+                Добавяне на CAD модел, чертеж, изображение
+                или документ към {{ digital_twin.name }}.
+            </p>
+        </div>
+
+        <div class="page-actions">
+            <a
+                href="{{ cancel_url }}"
+                class="button button-secondary"
+            >
+                Назад към двойника
+            </a>
+        </div>
+    </section>
+
+
+    <form
+        method="post"
+        enctype="multipart/form-data"
+    >
+        {% csrf_token %}
+
+        <section class="card margin-bottom">
+            <div class="card-header">
+                <div>
+                    <h2>
+                        Данни за файла
+                    </h2>
+
+                    <span class="text-muted">
+                        Изберете тип, файл и кратко описание
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger margin-bottom">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="{{ form.file_type.id_for_label }}">
+                        {{ form.file_type.label }}
+                        <span aria-hidden="true">*</span>
+                    </label>
+
+                    {{ form.file_type }}
+
+                    {% if form.file_type.errors %}
+                        <div class="field-errors">
+                            {{ form.file_type.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.file.id_for_label }}">
+                        {{ form.file.label }}
+                        <span aria-hidden="true">*</span>
+                    </label>
+
+                    {{ form.file }}
+
+                    {% if form.file.help_text %}
+                        <small class="help-text">
+                            {{ form.file.help_text }}
+                        </small>
+                    {% endif %}
+
+                    {% if form.file.errors %}
+                        <div class="field-errors">
+                            {{ form.file.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}">
+                        {{ form.description.label }}
+                    </label>
+
+                    {{ form.description }}
+
+                    {% if form.description.errors %}
+                        <div class="field-errors">
+                            {{ form.description.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <div class="page-actions">
+            <button
+                type="submit"
+                class="button button-primary"
+            >
+                Качи файла
+            </button>
+
+            <a
+                href="{{ cancel_url }}"
+                class="button button-secondary"
+            >
+                Отказ
+            </a>
+        </div>
+    </form>
+{% endblock %}
