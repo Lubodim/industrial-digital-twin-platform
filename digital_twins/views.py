@@ -279,31 +279,59 @@ class DigitalTwinDetailView(
 
         result_experiments = getattr(
             twin,
-            "result_experiments",
+            "source_experiments",
             None,
         )
 
+        origin_experiment = None
+        applied_changes = []
+        manual_changes = []
+
+        if result_experiments is not None:
+            origin_experiment = (
+                result_experiments
+                .select_related(
+                    "digital_twin",
+                    "approved_by",
+                )
+                .order_by("-completed_at")
+                .first()
+            )
+
+        if origin_experiment is not None:
+            changed_parameters = (
+                origin_experiment.changed_parameters
+                if isinstance(
+                    origin_experiment.changed_parameters,
+                    dict,
+                )
+                else {}
+            )
+
+            applied_changes = changed_parameters.get(
+                "applied_changes",
+                [],
+            )
+
+            manual_changes = changed_parameters.get(
+                "manual_changes",
+                [],
+            )
+
         context.update(
             {
-                "cost_summary": (
-                    DigitalTwinService
-                    .get_cost_summary(twin)
-                ),
+                "cost_summary": (DigitalTwinService.get_cost_summary(twin)),
                 "files": twin.files.all(),
-                "source_experiments": (
-                    source_experiments.all()
-                    if source_experiments is not None
-                    else ()
-                ),
-                "result_experiments": (
-                    result_experiments.all()
-                    if result_experiments is not None
-                    else ()
-                ),
-                "page_title": (
-                    f"{twin.part_number} - "
-                    f"{twin.name}"
-                ),
+                "source_experiments": (source_experiments.all() if source_experiments is not None else ()),
+                "result_experiments": (result_experiments.all() if result_experiments is not None else ()),
+                "origin_experiment": origin_experiment,
+                "applied_changes": applied_changes,
+                "manual_changes": manual_changes,
+                "applied_change_count": len(applied_changes),
+                "manual_change_count": len(manual_changes),
+                "page_title": (f"{twin.part_number} - {twin.name}"),
+
+
             }
         )
 

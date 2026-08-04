@@ -291,7 +291,215 @@
             </div>
         </section>
     </div>
+        {% if origin_experiment %}
+        <section class="card margin-bottom">
+            <div class="card-header">
+                <div>
+                    <h2>
+                        Резултат от инженерния експеримент
+                    </h2>
 
+                    <span class="text-muted">
+                        Произход и приложени промени към резултатния
+                        цифров двойник
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <dl class="definition-list">
+                    <dt>
+                        Изходен експеримент
+                    </dt>
+
+                    <dd>
+                        <a
+                            href="{% url 'experiments:detail' origin_experiment.pk %}"
+                        >
+                            {{ origin_experiment.name }}
+                        </a>
+                    </dd>
+
+                    <dt>
+                        Изходен цифров двойник
+                    </dt>
+
+                    <dd>
+                        <a
+                            href="{% url 'digital_twins:detail' origin_experiment.digital_twin.pk %}"
+                        >
+                            {{ origin_experiment.digital_twin.part_number }}
+                            —
+                            {{ origin_experiment.digital_twin.name }}
+                        </a>
+                    </dd>
+
+                    <dt>
+                        Директно приложени промени
+                    </dt>
+
+                    <dd>
+                        {{ applied_change_count }}
+                    </dd>
+
+                    <dt>
+                        Инженерни / CAD инструкции
+                    </dt>
+
+                    <dd>
+                        {{ manual_change_count }}
+                    </dd>
+                </dl>
+            </div>
+        </section>
+
+
+        {% if applied_changes %}
+            <section class="card margin-bottom">
+                <div class="card-header">
+                    <div>
+                        <h2>
+                            Директно приложени промени
+                        </h2>
+
+                        <span class="text-muted">
+                            Промени, нанесени автоматично върху
+                            резултатния цифров двойник
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    {% for change in applied_changes %}
+                        <div class="alert alert-success margin-bottom">
+                            <strong>
+                                #{{ change.proposal_sequence }}
+                                {{ change.proposal_title }}
+                            </strong>
+
+                            <div class="margin-top">
+                                Поле:
+                                <strong>
+                                    {{ change.field_name }}
+                                </strong>
+                            </div>
+
+                            <div>
+                                Стара стойност:
+                                {{ change.old_value|default:"—" }}
+                            </div>
+
+                            <div>
+                                Нова стойност:
+                                {{ change.new_value|default:"—" }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+
+        {% if manual_changes %}
+            <section class="card margin-bottom">
+                <div class="card-header">
+                    <div>
+                        <h2>
+                            Одобрени инженерни / CAD инструкции
+                        </h2>
+
+                        <span class="text-muted">
+                            Одобрени предложения, които изискват
+                            инженерна или CAD реализация
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    {% for change in manual_changes %}
+                        <div class="alert alert-warning margin-bottom">
+                            <strong>
+                                #{{ change.proposal_sequence }}
+                                {{ change.proposal_title }}
+                            </strong>
+
+                            <dl class="definition-list margin-top">
+                                <dt>
+                                    Категория
+                                </dt>
+
+                                <dd>
+                                    {{ change.category|default:"—" }}
+                                </dd>
+
+                                <dt>
+                                    Параметър
+                                </dt>
+
+                                <dd>
+                                    {{ change.parameter_name|default:"—" }}
+                                </dd>
+
+                                <dt>
+                                    Текуща стойност
+                                </dt>
+
+                                <dd>
+                                    {{ change.current_value|default:"—" }}
+                                </dd>
+
+                                <dt>
+                                    Одобрена стойност
+                                </dt>
+
+                                <dd>
+                                    {{ change.proposed_value|default:"—" }}
+
+                                    {% if change.unit %}
+                                        {{ change.unit }}
+                                    {% endif %}
+                                </dd>
+                            </dl>
+
+                            {% if change.reason %}
+                                <div class="margin-top">
+                                    <strong>
+                                        Причина:
+                                    </strong>
+
+                                    {{ change.reason }}
+                                </div>
+                            {% endif %}
+
+                            {% if change.expected_benefit %}
+                                <div class="margin-top">
+                                    <strong>
+                                        Очакван ефект:
+                                    </strong>
+
+                                    {{ change.expected_benefit }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+
+        {% if not applied_changes and manual_changes %}
+            <div class="alert alert-warning margin-bottom">
+                <strong>
+                    Важно:
+                </strong>
+
+                В този резултатен цифров двойник няма автоматично
+                променени основни полета. Одобрените предложения са
+                инженерни или CAD инструкции и изискват допълнителна
+                реализация в геометричния модел.
+            </div>
+        {% endif %}
+    {% endif %}
 
     <div class="grid grid-two-columns margin-bottom">
         <section class="card">
@@ -613,21 +821,92 @@
                 </span>
             </div>
         </div>
-
-        <div class="card-body">
-            {% if cost_summary %}
+                <div class="card-body">
+                    {% if cost_summary %}
                 <div class="grid grid-four-columns">
-                    {% for key, value in cost_summary.items %}
-                        <article class="statistic-card">
-                            <span class="statistic-label">
-                                {{ key|title }}
-                            </span>
+                    <article class="statistic-card">
+                        <span class="statistic-label">
+                            Ефективна маса
+                        </span>
 
-                            <strong class="statistic-value">
-                                {{ value }}
-                            </strong>
-                        </article>
-                    {% endfor %}
+                        <strong class="statistic-value">
+                            {{ cost_summary.effective_mass_kg }}
+                        </strong>
+
+                        <span class="statistic-description">
+                            kg
+                        </span>
+                    </article>
+
+                    <article class="statistic-card">
+                        <span class="statistic-label">
+                            Разход за материал
+                        </span>
+
+                        <strong class="statistic-value">
+                            {{ cost_summary.estimated_material_cost }}
+                        </strong>
+                    </article>
+
+                    <article class="statistic-card">
+                        <span class="statistic-label">
+                            Разход за машинна обработка
+                        </span>
+
+                        <strong class="statistic-value">
+                            {{ cost_summary.estimated_machine_cost }}
+                        </strong>
+                    </article>
+
+                    <article class="statistic-card">
+                        <span class="statistic-label">
+                            Преки производствени разходи
+                        </span>
+
+                        <strong class="statistic-value">
+                            {{ cost_summary.estimated_direct_cost }}
+                        </strong>
+                    </article>
+
+                    <article class="statistic-card">
+                        <span class="statistic-label">
+                            Очакван разход от брак
+                        </span>
+
+                        <strong class="statistic-value">
+                            {{ cost_summary.estimated_defect_cost }}
+                        </strong>
+                    </article>
+
+                    <article class="statistic-card">
+                        <span class="statistic-label">
+                            Обща себестойност
+                        </span>
+
+                        <strong class="statistic-value">
+                            {{ cost_summary.estimated_total_cost }}
+                        </strong>
+                    </article>
+
+                    <article class="statistic-card">
+                        <span class="statistic-label">
+                            Прогнозна продажна цена
+                        </span>
+
+                        <strong class="statistic-value">
+                            {{ cost_summary.estimated_selling_price }}
+                        </strong>
+                    </article>
+
+                    <article class="statistic-card">
+                        <span class="statistic-label">
+                            Очаквана печалба
+                        </span>
+
+                        <strong class="statistic-value">
+                            {{ cost_summary.estimated_profit }}
+                        </strong>
+                    </article>
                 </div>
             {% else %}
                 <div class="empty-state">

@@ -715,14 +715,29 @@ class ExperimentCreateResultTwinView(
                 pk=experiment.pk,
             )
 
-        messages.success(
-            request,
-            (
-                "Резултатният цифров двойник "
-                f"„{result.result_twin.name}“ "
-                "е създаден успешно."
-            ),
-        )
+        if result.applied_change_count > 0:
+            messages.success(
+                request,
+                (
+                    "Резултатният цифров двойник "
+                    f"„{result.result_twin.name}“ е създаден. "
+                    "Автоматично приложени промени: "
+                    f"{result.applied_change_count}. "
+                    "Инженерни/CAD инструкции: "
+                    f"{result.manual_change_count}."
+                ),
+            )
+        else:
+            messages.warning(
+                request,
+                (
+                    "Резултатният цифров двойник "
+                    f"„{result.result_twin.name}“ е създаден, "
+                    "но няма автоматично приложими промени. "
+                    "Записани инженерни/CAD инструкции: "
+                    f"{result.manual_change_count}."
+                ),
+            )
 
         return redirect(
             "digital_twins:detail",
