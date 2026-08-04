@@ -588,9 +588,29 @@
             </span>
         </div>
 
-            <span class="badge">
-                {{ chat_message_count }} съобщения
-            </span>
+            <div class="page-actions">
+                <span class="badge">
+                    {{ chat_message_count }} съобщения
+                </span>
+
+                {% if chat_message_count %}
+                    {% if display_language == "bg" %}
+                        <a
+                            href="?language=en#engineering-conversation"
+                            class="button button-secondary"
+                        >
+                            Покажи оригиналните отговори на английски
+                        </a>
+                    {% else %}
+                        <a
+                            href="?language=bg#engineering-conversation"
+                            class="button button-primary"
+                        >
+                            Покажи превода на български
+                        </a>
+                    {% endif %}
+                {% endif %}
+            </div>
         </div>
 
         <div class="card-body">
@@ -757,7 +777,31 @@
                                 </div>
 
                                 <div class="card-body">
-                                    {{ answer.content|linebreaks }}
+                                    {% if display_language == "en" %}
+                                        <div>
+                                            {{ answer.content|linebreaks }}
+                                        </div>
+
+                                        <p class="text-muted margin-top">
+                                            Показва се оригиналният AI отговор на английски език.
+                                        </p>
+
+                                    {% elif answer.display_content_bg %}
+                                        <div>
+                                            {{ answer.display_content_bg|linebreaks }}
+                                        </div>
+
+                                    {% else %}
+                                        <div>
+                                            {{ answer.content|linebreaks }}
+                                        </div>
+
+                                        <div class="alert alert-info margin-top">
+                                            Българският превод се подготвя във фонов режим.
+                                            Оригиналният английски отговор се показва временно.
+                                            Презаредете страницата след малко.
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </article>
                         {% empty %}

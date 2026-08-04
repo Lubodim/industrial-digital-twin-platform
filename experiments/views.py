@@ -38,6 +38,14 @@ from ai_engine.local_ai.engineering_agent import (
     EngineeringAgent,
     EngineeringAgentError,
 )
+
+from ai_engine.local_ai.translation_service import (
+    BulgarianTranslationService,
+    TranslationError,
+)
+
+from ai_engine.local_ai.background_translation import schedule_translation
+
 from ai_engine.experiment_research_service import (
     ExperimentResearchService,
 )
@@ -303,6 +311,32 @@ class ExperimentDetailView(
             )
         )
 
+        translation_service = BulgarianTranslationService()
+        display_language = self.request.GET.get("language", "bg").lower()
+
+        if display_language not in {"bg", "en"}:
+            display_language = "bg"
+
+        for chat_message in chat_messages:
+            chat_message.display_content_bg = ""
+            chat_message.translation_pending = False
+
+            if chat_message.role != ExperimentChatMessage.Role.ASSISTANT:
+                continue
+
+            cached_translation = translation_service.get_cached_translation(
+                message_id=chat_message.pk,
+                content=chat_message.content,
+            )
+
+            if cached_translation:
+                chat_message.display_content_bg = cached_translation
+            else:
+                chat_message.translation_pending = schedule_translation(
+                    message_id=chat_message.pk,
+                    content=chat_message.content,
+                )
+
         question_groups = []
         current_group = None
 
@@ -343,6 +377,7 @@ class ExperimentDetailView(
         context.update(
             {
                 "question_page": question_page,
+                "display_language": display_language,
                 "chat_message_count": len(
                     chat_messages
                 ),
@@ -370,6 +405,7 @@ class ExperimentDetailView(
                         )
                     ).count()
                 ),
+
 
                 "research_question_form": (
                     ExperimentResearchQuestionForm()
@@ -412,6 +448,116 @@ class ExperimentDetailView(
 
         return context
 
+
+class ExperimentTranslateMessagesView(
+    LoginRequiredMixin,
+    ExperimentObjectMixin,
+    View,
+):
+    """
+    Translate all AI conversation answers to Bulgarian.
+
+    Original message content remains unchanged in the database.
+    """
+
+    http_method_names = [
+        "post",
+    ]
+
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponseRedirect:
+        experiment = self.get_object()
+
+        assistant_messages = (
+            experiment.chat_messages.filter(
+                role=(
+                    ExperimentChatMessage.Role.ASSISTANT
+                )
+            ).order_by(
+                "sequence"
+            )
+        )
+
+        translation_service = (
+            BulgarianTranslationService()
+        )
+
+        translated_count = 0
+        cached_count = 0
+        failed_count = 0
+
+        for chat_message in assistant_messages:
+            cached_translation = (
+                translation_service.get_cached_translation(
+                    message_id=chat_message.pk,
+                    content=chat_message.content,
+                )
+            )
+
+            if cached_translation:
+                cached_count += 1
+                continue
+
+            try:
+                translation_service.translate(
+                    message_id=chat_message.pk,
+                    content=chat_message.content,
+                )
+            except TranslationError:
+                failed_count += 1
+            else:
+                translated_count += 1
+
+        if translated_count > 0:
+            messages.success(
+                request,
+                (
+                    "Преведени AI отговори: "
+                    f"{translated_count}. "
+                    "Вече налични преводи: "
+                    f"{cached_count}."
+                ),
+            )
+
+        elif cached_count > 0 and failed_count == 0:
+            messages.info(
+                request,
+                "Всички AI отговори вече имат български превод.",
+            )
+
+        if failed_count > 0:
+            messages.warning(
+                request,
+                (
+                    "Неуспешно преведени AI отговори: "
+                    f"{failed_count}. Можете да повторите операцията."
+                ),
+            )
+
+        if (
+            translated_count == 0
+            and cached_count == 0
+            and failed_count == 0
+        ):
+            messages.info(
+                request,
+                "В разговора няма AI отговори за превод.",
+            )
+
+        return redirect(
+            reverse(
+                "experiments:detail",
+                kwargs={
+                    "pk": experiment.pk,
+                },
+            )
+            + "#engineering-conversation"
+        )
+
 class ExperimentProposalListView(
     LoginRequiredMixin,
     ExperimentObjectMixin,
@@ -420,6 +566,33 @@ class ExperimentProposalListView(
     """
     Display the engineering proposals generated for one experiment.
     """
+
+    @staticmethod
+    def prepare_translated_field(
+        proposal: ExperimentProposal,
+        field_name: str,
+        translation_service: BulgarianTranslationService,
+    ) -> None:
+        original_value = getattr(proposal, field_name, None)
+        display_attribute = f"display_{field_name}_bg"
+
+        if not isinstance(original_value, str) or not original_value.strip():
+            setattr(proposal, display_attribute, "")
+            return
+
+        translation_id = f"proposal-{proposal.pk}-{field_name}"
+        cached_translation = translation_service.get_cached_translation(
+            message_id=translation_id,
+            content=original_value,
+        )
+
+        setattr(proposal, display_attribute, cached_translation)
+
+        if not cached_translation:
+            schedule_translation(
+                message_id=translation_id,
+                content=original_value,
+            )
 
     template_name = (
         "experiments/proposal_list.html"
@@ -491,6 +664,29 @@ class ExperimentProposalListView(
             )
         )
 
+        translation_service = BulgarianTranslationService()
+        display_language = self.request.GET.get("language", "bg").lower()
+
+        if display_language not in {"bg", "en"}:
+            display_language = "bg"
+
+        translatable_fields = (
+            "title",
+            "description",
+            "reason",
+            "expected_benefit",
+        )
+
+        for proposal in proposal_page.object_list:
+            for field_name in translatable_fields:
+                self.prepare_translated_field(
+                    proposal=proposal,
+                    field_name=field_name,
+                    translation_service=translation_service,
+                )
+
+            
+
         all_proposals = experiment.proposals.all()
 
         pending_count = all_proposals.filter(
@@ -527,6 +723,7 @@ class ExperimentProposalListView(
                 "category_choices": (ExperimentProposal.Category.choices),
                 "selected_status": status_filter,
                 "selected_category": category_filter,
+                "display_language": display_language,
                 "page_title": (f"Engineering proposals – {experiment.name}"),
                 "can_create_result_twin": can_create_result_twin,
             }

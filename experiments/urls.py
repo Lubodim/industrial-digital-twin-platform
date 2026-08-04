@@ -17,6 +17,7 @@ from experiments.views import (
     ExperimentProposalReviewView,
     ExperimentReleaseLockView,
     ExperimentResearchQuestionView,
+    # ExperimentTranslateMessagesView,
     ExperimentUpdateView,
 )
 
@@ -35,8 +36,10 @@ urlpatterns = [
     path("<uuid:pk>/archive/", ExperimentArchiveView.as_view(), name="archive", ),
     path("<uuid:pk>/delete/", ExperimentDeleteView.as_view(), name="delete", ),
     path("<uuid:pk>/research/question/", ExperimentResearchQuestionView.as_view(), name="research_question", ),
+    # path("<uuid:pk>/translate-messages/", ExperimentTranslateMessagesView.as_view(),name="translate_messages",),
     path("<uuid:pk>/proposals/", ExperimentProposalListView.as_view(), name="proposals", ),
     path("<uuid:pk>/proposals/<uuid:proposal_pk>/review/", ExperimentProposalReviewView.as_view(), name="proposal_review", ),
     path("<uuid:pk>/create-result-twin/", ExperimentCreateResultTwinView.as_view(), name="create_result_twin", ),
+    
 ]
 

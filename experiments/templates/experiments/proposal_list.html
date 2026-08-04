@@ -30,6 +30,21 @@
         </div>
 
         <div class="page-actions">
+            {% if display_language == "bg" %}
+                <a
+                    href="?language=en{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}"
+                    class="button button-secondary"
+                >
+                    Покажи оригиналните предложения на английски
+                </a>
+            {% else %}
+                <a
+                    href="?language=bg{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}"
+                    class="button button-primary"
+                >
+                    Покажи превода на български
+                </a>
+            {% endif %}
             <a
                 href="{% url 'experiments:detail' experiment.pk %}"
                 class="button button-secondary"
@@ -231,6 +246,7 @@
 
         <div class="card-body">
             <form method="get">
+                <input type="hidden" name="language" value="{{ display_language }}">
                 <div class="grid grid-two-columns">
                     <div class="form-group">
                         <label for="proposal-status-filter">
@@ -379,7 +395,12 @@
 
                             <h3>
                                 #{{ proposal.sequence }}
-                                {{ proposal.title }}
+
+                                {% if display_language == "bg" and proposal.display_title_bg %}
+                                    {{ proposal.display_title_bg }}
+                                {% else %}
+                                    {{ proposal.title }}
+                                {% endif %}
                             </h3>
                         </div>
 
@@ -396,14 +417,20 @@
 
                     <div class="card-body">
                         <p>
-                            {{ proposal.description|linebreaksbr }}
+
+                            {% if display_language == "bg" and proposal.display_description_bg %}
+                                {{ proposal.display_description_bg|linebreaksbr }}
+                            {% else %}
+                                {{ proposal.description|linebreaksbr }}
+                            {% endif %}
+
                         </p>
 
                         <dl class="definition-list">
                             <dt>Параметър</dt>
 
                             <dd>
-                                {% if proposal.parameter_name %}
+                               {% if proposal.parameter_name %}
                                     {{ proposal.parameter_name }}
                                 {% else %}
                                     <span class="text-muted">
@@ -417,7 +444,6 @@
                             <dd>
                                 {% if proposal.current_value != None %}
                                     {{ proposal.current_value }}
-
                                     {% if proposal.unit %}
                                         {{ proposal.unit }}
                                     {% endif %}
@@ -433,7 +459,6 @@
                             <dd>
                                 {% if proposal.proposed_value != None %}
                                     {{ proposal.proposed_value }}
-
                                     {% if proposal.unit %}
                                         {{ proposal.unit }}
                                     {% endif %}
@@ -447,13 +472,21 @@
                             <dt>Причина</dt>
 
                             <dd>
-                                {{ proposal.reason|linebreaksbr }}
+                                {% if display_language == "bg" and proposal.display_reason_bg %}
+                                    {{ proposal.display_reason_bg|linebreaksbr }}
+                                {% else %}
+                                    {{ proposal.reason|linebreaksbr }}
+                                {% endif %}
                             </dd>
 
                             <dt>Очаквана полза</dt>
 
                             <dd>
-                                {{ proposal.expected_benefit|linebreaksbr }}
+                                {% if display_language == "bg" and proposal.display_expected_benefit_bg %}
+                                    {{ proposal.display_expected_benefit_bg|linebreaksbr }}
+                                {% else %}
+                                    {{ proposal.expected_benefit|linebreaksbr }}
+                                {% endif %}
                             </dd>
 
                             <dt>Необходима проверка</dt>
