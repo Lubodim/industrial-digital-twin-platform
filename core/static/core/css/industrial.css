@@ -1098,3 +1098,51 @@ textarea {
         transform: rotate(360deg);
     }
 }
+/* Digital twin hierarchy */
+
+.digital-twin-root-row {
+    background: rgba(255, 255, 255, 0.012);
+}
+
+.digital-twin-root-row > td {
+    border-top: 2px solid var(--border-color, #42505d);
+}
+
+.digital-twin-child-row {
+    background: rgba(30, 144, 255, 0.025);
+}
+
+.digital-twin-child-row > td:first-child {
+    border-left: 3px solid #3489eb;
+}
+
+.digital-twin-child-name {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding-left: 22px;
+}
+
+.digital-twin-branch {
+    flex: 0 0 auto;
+    color: #43a5ff;
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.digital-twin-origin {
+    margin-top: 5px;
+    color: var(--text-muted, #91a0ad);
+    font-size: 0.82rem;
+}
+
+.digital-twin-origin a {
+    font-weight: 600;
+}
+
+.digital-twin-root-row .badge,
+.digital-twin-child-row .badge {
+    margin-left: 8px;
+    vertical-align: middle;
+}

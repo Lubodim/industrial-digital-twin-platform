@@ -38,7 +38,7 @@
             </span>
 
             <strong class="statistic-value">
-                {{ page_obj.paginator.count|default:digital_twins|length }}
+                {{ statistics.total_count }}
             </strong>
 
             <span class="statistic-description">
@@ -48,43 +48,43 @@
 
         <article class="card statistic-card">
             <span class="statistic-label">
-                Активни
-            </span>
-
-            <strong class="statistic-value text-success">
-                {{ active_count|default:"—" }}
-            </strong>
-
-            <span class="statistic-description">
-                Достъпни за експерименти
-            </span>
-        </article>
-
-        <article class="card statistic-card">
-            <span class="statistic-label">
-                Неактивни
-            </span>
-
-            <strong class="statistic-value text-warning">
-                {{ inactive_count|default:"—" }}
-            </strong>
-
-            <span class="statistic-description">
-                Временно изключени записи
-            </span>
-        </article>
-
-        <article class="card statistic-card">
-            <span class="statistic-label">
-                С експерименти
+                Основни двойници
             </span>
 
             <strong class="statistic-value">
-                {{ with_experiments_count|default:"—" }}
+                {{ root_count }}
             </strong>
 
             <span class="statistic-description">
-                Използвани в инженерни анализи
+                Изходни производствени изделия
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Производни двойници
+            </span>
+
+            <strong class="statistic-value">
+                {{ derived_count }}
+            </strong>
+
+            <span class="statistic-description">
+                Създадени от инженерни експерименти
+            </span>
+        </article>
+
+        <article class="card statistic-card">
+            <span class="statistic-label">
+                Активни двойници
+            </span>
+
+            <strong class="statistic-value text-success">
+                {{ statistics.active_count }}
+            </strong>
+
+            <span class="statistic-description">
+                Достъпни за нови експерименти
             </span>
         </article>
     </section>
@@ -114,119 +114,30 @@
                             <th>Действия</th>
                         </tr>
                     </thead>
+                        <tbody>
+                            {% for group in hierarchy_groups %}
+                                {% include "digital_twins/_digital_twin_table_row.html" with twin=group.root %}
 
-                    <tbody>
-                        {% for twin in digital_twins %}
-                            <tr>
-                                <td>
-                                    <a
-                                        href="{% url 'digital_twins:detail' twin.pk %}"
-                                    >
-                                        <strong>
-                                            {{ twin.name }}
-                                        </strong>
-                                    </a>
+                                {% for child in group.children %}
+                                    {% include "digital_twins/_digital_twin_table_row.html" with twin=child.twin is_child=True parent_twin=child.parent_twin origin_experiment=child.origin_experiment %}
+                                {% endfor %}
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6">
+                                        <div class="empty-state">
+                                            <h3>
+                                                Няма намерени цифрови двойници
+                                            </h3>
 
-                                    {% if twin.description %}
-                                        <div class="text-muted">
-                                            {{ twin.description|truncatechars:80 }}
+                                            <p>
+                                                Няма записи, които отговарят на
+                                                избраните критерии.
+                                            </p>
                                         </div>
-                                    {% endif %}
-                                </td>
-
-                                <td>
-                                    {{ twin.part_number }}
-                                </td>
-
-                                <td>
-                                    {% if twin.material %}
-                                        {{ twin.material.name }}
-                                    {% else %}
-                                        <span class="text-muted">
-                                            Не е зададен
-                                        </span>
-                                    {% endif %}
-                                </td>
-
-                                <td>
-                                    {% if twin.technology %}
-                                        {{ twin.technology.name }}
-                                    {% else %}
-                                        <span class="text-muted">
-                                            Не е зададена
-                                        </span>
-                                    {% endif %}
-                                </td>
-
-                                <td>
-                                    {% if twin.is_active %}
-                                        <span class="badge badge-success">
-                                            Активен
-                                        </span>
-                                    {% else %}
-                                        <span class="badge">
-                                            Неактивен
-                                        </span>
-                                    {% endif %}
-                                </td>
-
-                                <td>
-                                    <div class="page-actions">
-                                        <a
-                                            href="{% url 'digital_twins:detail' twin.pk %}"
-                                            class="button button-secondary button-small"
-                                        >
-                                            Преглед
-                                        </a>
-
-                                        <a
-                                            href="{% url 'digital_twins:update' twin.pk %}"
-                                            class="button button-primary button-small"
-                                        >
-                                            Редактиране
-                                        </a>
-
-                                        {% if twin.is_active %}
-                                            <form
-                                                method="post"
-                                                action="{% url 'digital_twins:deactivate' twin.pk %}"
-                                            >
-                                                {% csrf_token %}
-
-                                                <button
-                                                    type="submit"
-                                                    class="button button-warning button-small"
-                                                >
-                                                    Деактивиране
-                                                </button>
-                                            </form>
-                                        {% else %}
-                                            <form
-                                                method="post"
-                                                action="{% url 'digital_twins:activate' twin.pk %}"
-                                            >
-                                                {% csrf_token %}
-
-                                                <button
-                                                    type="submit"
-                                                    class="button button-success button-small"
-                                                >
-                                                    Активиране
-                                                </button>
-                                            </form>
-                                        {% endif %}
-
-                                        <a
-                                            href="{% url 'digital_twins:delete' twin.pk %}"
-                                            class="button button-danger button-small"
-                                        >
-                                            Изтриване
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
                 </table>
             </div>
         {% else %}

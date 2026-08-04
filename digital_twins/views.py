@@ -209,41 +209,157 @@ class DigitalTwinListView(
                 "",
             ),
         )
-
-    def get_context_data(
-        self,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """
-        Add filters and list statistics to the template context.
+        Add filters, statistics and hierarchical twin groups
+        to the template context.
         """
 
-        context = super().get_context_data(
-            **kwargs
+        context = super().get_context_data(**kwargs)
+
+        filtered_queryset = (
+            self.get_queryset()
+            .select_related("material", "technology")
+            .prefetch_related("source_experiments")
         )
 
-        filtered_queryset = self.get_queryset()
+        twins = list(filtered_queryset)
+
+        derived_twin_ids = {
+            twin.pk
+            for twin in twins
+            if twin.source_experiments.all()
+        }
+
+        root_twins = [
+            twin
+            for twin in twins
+            if twin.pk not in derived_twin_ids
+        ]
+
+        parent_by_twin_id = {}
+        origin_experiment_by_twin_id = {}
+
+        for twin in twins:
+            origin_experiment = next(
+                iter(twin.source_experiments.all()),
+                None,
+            )
+
+            if origin_experiment is None:
+                continue
+
+            parent_by_twin_id[twin.pk] = (
+                origin_experiment.digital_twin_id
+            )
+
+            origin_experiment_by_twin_id[twin.pk] = (
+                origin_experiment
+            )
+
+        twin_by_id = {
+            twin.pk: twin
+            for twin in twins
+        }
+
+        def find_root_id(twin_id):
+            visited_ids = set()
+            current_id = twin_id
+
+            while current_id in parent_by_twin_id:
+                if current_id in visited_ids:
+                    break
+
+                visited_ids.add(current_id)
+                current_id = parent_by_twin_id[current_id]
+
+            return current_id
+
+        children_by_root_id = {
+            root_twin.pk: []
+            for root_twin in root_twins
+        }
+
+        for twin in twins:
+            if twin.pk not in derived_twin_ids:
+                continue
+
+            root_id = find_root_id(twin.pk)
+
+            if root_id not in children_by_root_id:
+                root_twin = twin_by_id.get(root_id)
+
+                if root_twin is not None:
+                    root_twins.append(root_twin)
+                    children_by_root_id[root_id] = []
+
+            parent_id = parent_by_twin_id.get(twin.pk)
+
+            children_by_root_id.setdefault(
+                root_id,
+                [],
+            ).append(
+                {
+                    "twin": twin,
+                    "parent_twin": twin_by_id.get(parent_id),
+                    "origin_experiment": (
+                        origin_experiment_by_twin_id.get(
+                            twin.pk
+                        )
+                    ),
+                }
+            )
+
+        root_twins.sort(
+            key=lambda twin: (
+                twin.name.lower(),
+                twin.part_number.lower(),
+            )
+        )
+
+        hierarchy_groups = []
+
+        for root_twin in root_twins:
+            children = children_by_root_id.get(
+                root_twin.pk,
+                [],
+            )
+
+            children.sort(
+                key=lambda item: (
+                    item["twin"].created_at,
+                    item["twin"].part_number,
+                )
+            )
+
+            hierarchy_groups.append(
+                {
+                    "root": root_twin,
+                    "children": children,
+                    "child_count": len(children),
+                }
+            )
+
+        derived_count = len(derived_twin_ids)
+        root_count = len(root_twins)
 
         context.update(
             {
-                "filter_form": (
-                    self.get_filter_form()
-                ),
+                "filter_form": self.get_filter_form(),
+                "root_count": root_count,
+                "derived_count": derived_count,
+                "hierarchy_groups": hierarchy_groups,
                 "statistics": (
-                    DigitalTwinService
-                    .get_statistics(
+                    DigitalTwinService.get_statistics(
                         filtered_queryset
                     )
                 ),
-                "page_title": (
-                    "Digital Twins"
-                ),
+                "page_title": "Digital Twins",
             }
         )
 
         return context
-
-
+    
 class DigitalTwinDetailView(
     LoginRequiredMixin,
     DigitalTwinObjectMixin,
@@ -270,6 +386,18 @@ class DigitalTwinDetailView(
         )
 
         twin = self.object
+
+        files = list(twin.files.all())
+
+        stl_file = next(
+            (
+                twin_file
+                for twin_file in files
+                if twin_file.file
+                and twin_file.file.name.lower().endswith(".stl")
+            ),
+            None,
+        )
 
         source_experiments = getattr(
             twin,
@@ -321,7 +449,8 @@ class DigitalTwinDetailView(
         context.update(
             {
                 "cost_summary": (DigitalTwinService.get_cost_summary(twin)),
-                "files": twin.files.all(),
+                "files": files,
+                "stl_file": stl_file,
                 "source_experiments": (source_experiments.all() if source_experiments is not None else ()),
                 "result_experiments": (result_experiments.all() if result_experiments is not None else ()),
                 "origin_experiment": origin_experiment,

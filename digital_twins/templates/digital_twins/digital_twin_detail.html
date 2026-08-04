@@ -1,11 +1,17 @@
 {% extends "base.html" %}
-
+{% load static %}
 
 {% block title %}
     {{ digital_twin.part_number }} – {{ digital_twin.name }}
     | Industrial Digital Twin Platform
 {% endblock %}
 
+{% block extra_css %}
+    <link
+        rel="stylesheet"
+        href="{% static 'core/css/stl-viewer.css' %}"
+    >
+{% endblock %}
 
 {% block content %}
     <section class="page-header">
@@ -923,6 +929,110 @@
         </div>
     </section>
 
+    <section class="card margin-bottom">
+        <div class="card-header">
+            <div>
+                <h2>
+                    Интерактивен 3D модел
+                </h2>
+
+                <span class="text-muted">
+                    STL визуализация с въртене, приближаване и преместване
+                </span>
+            </div>
+
+            {% if stl_file %}
+                <span class="badge badge-success">
+                    STL наличен
+                </span>
+            {% else %}
+                <span class="badge">
+                    Няма STL
+                </span>
+            {% endif %}
+        </div>
+
+        <div class="card-body">
+            {% if stl_file %}
+                <div
+                    id="digital-twin-stl-viewer"
+                    class="stl-viewer"
+                    data-stl-url="{{ stl_file.file.url }}"
+                ></div>
+
+                <div class="stl-viewer-toolbar">
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="stl-auto-rotate"
+                    >
+                        Автоматично въртене
+                    </button>
+
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="stl-reverse"
+                    >
+                        Смени посоката
+                    </button>
+
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="stl-reset"
+                    >
+                        Центрирай
+                    </button>
+
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="stl-front"
+                    >
+                        Отпред
+                    </button>
+
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="stl-top"
+                    >
+                        Отгоре
+                    </button>
+
+                    <a
+                        href="{{ stl_file.file.url }}"
+                        class="button button-secondary"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Отвори STL файла
+                    </a>
+                </div>
+
+                <div class="alert alert-info stl-viewer-note">
+                    <strong>Управление:</strong>
+                    ляв бутон на мишката – въртене,
+                    колелце – приближаване,
+                    десен бутон – преместване.
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>
+                        Няма STL модел за визуализация
+                    </h3>
+
+                    <p>
+                        За интерактивната 3D визуализация добавете
+                        STL файл като допълнителен CAD файл към
+                        цифровия двойник.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
         <div class="grid grid-two-columns margin-bottom">
         <section class="card">
             <div class="card-header">
@@ -946,9 +1056,15 @@
                             rel="noopener noreferrer"
                         >
                             <img
-                                src="{{ digital_twin.image_file.url }}"
-                                alt="{{ digital_twin.name }}"
-                                class="detail-image"
+                                src="{{ image_file.file.url }}"
+                                alt="{{ twin.name }}"
+                                class="img-fluid rounded"
+                                style="
+                                    width:100%;
+                                    max-height:420px;
+                                    object-fit:contain;
+                                    background:#1b1f24;
+                                "
                             >
                         </a>
                     </div>
@@ -1189,6 +1305,7 @@
 
 
     <section class="card margin-bottom">
+            <section class="card margin-bottom">
         <div class="card-header">
             <div>
                 <h2>
@@ -1201,9 +1318,18 @@
                 </span>
             </div>
 
-            <span class="badge">
-                {{ source_experiments|length }}
-            </span>
+            <div class="page-actions">
+                <span class="badge">
+                    {{ source_experiments|length }}
+                </span>
+
+                <a
+                    href="{% url 'experiments:create' %}?digital_twin={{ digital_twin.pk }}"
+                    class="button button-primary"
+                >
+                    Нов експеримент
+                </a>
+            </div>
         </div>
 
         <div class="card-body">
@@ -1353,12 +1479,6 @@
                         като основа за инженерен експеримент.
                     </p>
 
-                    <a
-                        href="{% url 'experiments:create' %}"
-                        class="button button-primary"
-                    >
-                        Създай експеримент
-                    </a>
                 </div>
             {% endif %}
         </div>
@@ -1648,4 +1768,116 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block extra_js %}
+    {% if stl_file %}
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "{% static 'core/vendor/three/build/three.module.js' %}",
+                    "three/addons/": "{% static 'core/vendor/three/addons/' %}"
+                }
+            }
+        </script>
+
+        <script type="module">
+            import {
+                LocalStlViewer
+            } from "{% static 'core/js/stl-viewer.js' %}";
+
+            const viewerContainer = document.getElementById(
+                "digital-twin-stl-viewer"
+            );
+
+            if (viewerContainer) {
+                const viewer = new LocalStlViewer(
+                    viewerContainer,
+                    {
+                        autoRotate: false,
+                        autoRotateSpeed: 1,
+                        showGrid: true,
+                        showAxes: false,
+                    }
+                );
+
+                const stlUrl = viewerContainer.dataset.stlUrl;
+
+                viewer.load(stlUrl).catch((error) => {
+                    console.error(
+                        "STL viewer load error:",
+                        error
+                    );
+                });
+
+                const autoRotateButton = document.getElementById(
+                    "stl-auto-rotate"
+                );
+
+                const reverseButton = document.getElementById(
+                    "stl-reverse"
+                );
+
+                const resetButton = document.getElementById(
+                    "stl-reset"
+                );
+
+                const frontButton = document.getElementById(
+                    "stl-front"
+                );
+
+                const topButton = document.getElementById(
+                    "stl-top"
+                );
+
+                autoRotateButton?.addEventListener(
+                    "click",
+                    () => {
+                        const isActive = viewer.toggleAutoRotate();
+
+                        autoRotateButton.textContent = isActive
+                            ? "Спри въртенето"
+                            : "Автоматично въртене";
+                    }
+                );
+
+                reverseButton?.addEventListener(
+                    "click",
+                    () => {
+                        viewer.reverseRotation();
+                    }
+                );
+
+                resetButton?.addEventListener(
+                    "click",
+                    () => {
+                        viewer.resetView();
+                    }
+                );
+
+                frontButton?.addEventListener(
+                    "click",
+                    () => {
+                        viewer.setPresetView("front");
+                    }
+                );
+
+                topButton?.addEventListener(
+                    "click",
+                    () => {
+                        viewer.setPresetView("top");
+                    }
+                );
+
+                window.addEventListener(
+                    "beforeunload",
+                    () => {
+                        viewer.dispose();
+                    },
+                    {
+                        once: true,
+                    }
+                );
+            }
+        </script>
+    {% endif %}
 {% endblock %}
