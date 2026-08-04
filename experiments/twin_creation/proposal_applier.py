@@ -26,6 +26,7 @@ class ProposalApplier:
         "description": "description",
 
         # Material
+        "material_selection": "material",
         "material": "material",
         "material_code": "material",
         "material_name": "material",
