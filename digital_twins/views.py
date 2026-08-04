@@ -412,6 +412,8 @@ class DigitalTwinDetailView(
         )
 
         origin_experiment = None
+        source_twin = None
+        source_stl_file = None
         applied_changes = []
         manual_changes = []
 
@@ -445,6 +447,20 @@ class DigitalTwinDetailView(
                 "manual_changes",
                 [],
             )
+            
+            source_twin = origin_experiment.digital_twin
+
+            source_files = list(source_twin.files.all())
+
+            source_stl_file = next(
+                (
+                    twin_file
+                    for twin_file in source_files
+                    if twin_file.file
+                    and twin_file.file.name.lower().endswith(".stl")
+                ),
+                None,
+            )
 
         context.update(
             {
@@ -454,6 +470,8 @@ class DigitalTwinDetailView(
                 "source_experiments": (source_experiments.all() if source_experiments is not None else ()),
                 "result_experiments": (result_experiments.all() if result_experiments is not None else ()),
                 "origin_experiment": origin_experiment,
+                "source_twin": source_twin,
+                "source_stl_file": source_stl_file,
                 "applied_changes": applied_changes,
                 "manual_changes": manual_changes,
                 "applied_change_count": len(applied_changes),

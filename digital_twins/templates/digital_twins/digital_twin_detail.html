@@ -932,16 +932,38 @@
     <section class="card margin-bottom">
         <div class="card-header">
             <div>
-                <h2>
-                    Интерактивен 3D модел
-                </h2>
+                {% if origin_experiment %}
+                    <h2>
+                        Сравнителна 3D визуализация
+                    </h2>
 
-                <span class="text-muted">
-                    STL визуализация с въртене, приближаване и преместване
-                </span>
+                    <span class="text-muted">
+                        Синхронизирано сравнение между изходния
+                        и производния цифров двойник
+                    </span>
+                {% else %}
+                    <h2>
+                        Интерактивен 3D модел
+                    </h2>
+
+                    <span class="text-muted">
+                        STL визуализация с въртене,
+                        приближаване и преместване
+                    </span>
+                {% endif %}
             </div>
 
-            {% if stl_file %}
+            {% if origin_experiment %}
+                {% if source_stl_file %}
+                    <span class="badge badge-success">
+                        STL наличен
+                    </span>
+                {% else %}
+                    <span class="badge">
+                        Няма STL
+                    </span>
+                {% endif %}
+            {% elif stl_file %}
                 <span class="badge badge-success">
                     STL наличен
                 </span>
@@ -953,7 +975,135 @@
         </div>
 
         <div class="card-body">
-            {% if stl_file %}
+            {% if origin_experiment and source_stl_file %}
+                <div class="stl-viewer-grid">
+                    <div class="stl-viewer-panel">
+                        <h3 class="stl-viewer-panel-title">
+                            Изходен цифров двойник
+                        </h3>
+
+                        <p class="text-muted">
+                            {{ source_twin.part_number }}
+                            – {{ source_twin.name }}
+                        </p>
+
+                        <div
+                            id="source-twin-stl-viewer"
+                            class="stl-viewer"
+                            data-stl-url="{{ source_stl_file.file.url }}"
+                        ></div>
+                    </div>
+
+                    <div class="stl-viewer-panel">
+                        <h3 class="stl-viewer-panel-title">
+                            Производен цифров двойник
+                        </h3>
+
+                        <p class="text-muted">
+                            {{ digital_twin.part_number }}
+                            – {{ digital_twin.name }}
+                        </p>
+
+                        <div
+                            id="derived-twin-stl-viewer"
+                            class="stl-viewer"
+                            data-stl-url="{{ source_stl_file.file.url }}"
+                        ></div>
+                    </div>
+                </div>
+
+                <div class="stl-viewer-toolbar">
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="stl-auto-rotate"
+                    >
+                        Автоматично въртене
+                    </button>
+
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="stl-reverse"
+                    >
+                        Смени посоката
+                    </button>
+
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="stl-reset"
+                    >
+                        Центрирай
+                    </button>
+
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="stl-front"
+                    >
+                        Отпред
+                    </button>
+
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="stl-top"
+                    >
+                        Отгоре
+                    </button>
+
+                    <a
+                        href="{{ source_stl_file.file.url }}"
+                        class="button button-secondary"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Отвори STL файла
+                    </a>
+                </div>
+
+                <div class="alert alert-warning stl-viewer-note">
+                    <strong>
+                        Временно сравнително представяне:
+                    </strong>
+
+                    производният цифров двойник използва
+                    наследената геометрия на изходния модел.
+
+                    Автоматичното генериране на актуализиран
+                    STEP/STL модел според одобрените инженерни
+                    промени е предвидено като бъдещо развитие.
+                </div>
+
+                <div class="alert alert-info stl-viewer-note">
+                    <strong>Управление:</strong>
+                    завъртането, приближаването и преместването
+                    в единия прозорец се прилагат синхронизирано
+                    и към другия.
+                </div>
+
+            {% elif origin_experiment %}
+                <div class="empty-state">
+                    <h3>
+                        Липсва STL модел на изходния двойник
+                    </h3>
+
+                    <p>
+                        За сравнителната 3D визуализация добавете
+                        STL файл към изходния цифров двойник
+                        {{ source_twin.part_number }}.
+                    </p>
+
+                    <a
+                        href="{% url 'digital_twins:detail' source_twin.pk %}"
+                        class="button button-secondary"
+                    >
+                        Отвори изходния двойник
+                    </a>
+                </div>
+
+            {% elif stl_file %}
                 <div
                     id="digital-twin-stl-viewer"
                     class="stl-viewer"
@@ -1017,6 +1167,7 @@
                     колелце – приближаване,
                     десен бутон – преместване.
                 </div>
+
             {% else %}
                 <div class="empty-state">
                     <h3>
@@ -1770,7 +1921,7 @@
     </section>
 {% endblock %}
 {% block extra_js %}
-    {% if stl_file %}
+    {% if stl_file or source_stl_file %}
         <script type="importmap">
             {
                 "imports": {
@@ -1782,102 +1933,207 @@
 
         <script type="module">
             import {
-                LocalStlViewer
+                LocalStlViewer,
+                synchronizeViewers
             } from "{% static 'core/js/stl-viewer.js' %}";
 
-            const viewerContainer = document.getElementById(
+            const sourceContainer = document.getElementById(
+                "source-twin-stl-viewer"
+            );
+
+            const derivedContainer = document.getElementById(
+                "derived-twin-stl-viewer"
+            );
+
+            const singleContainer = document.getElementById(
                 "digital-twin-stl-viewer"
             );
 
-            if (viewerContainer) {
-                const viewer = new LocalStlViewer(
-                    viewerContainer,
-                    {
-                        autoRotate: false,
-                        autoRotateSpeed: 1,
-                        showGrid: true,
-                        showAxes: false,
-                    }
+            const viewerOptions = {
+                autoRotate: false,
+                autoRotateSpeed: 1,
+                showGrid: true,
+                showAxes: false,
+            };
+
+            let viewers = [];
+            let removeSynchronization = null;
+
+            if (sourceContainer && derivedContainer) {
+                const sourceViewer = new LocalStlViewer(
+                    sourceContainer,
+                    viewerOptions
                 );
 
-                const stlUrl = viewerContainer.dataset.stlUrl;
+                const derivedViewer = new LocalStlViewer(
+                    derivedContainer,
+                    viewerOptions
+                );
 
-                viewer.load(stlUrl).catch((error) => {
+                viewers = [
+                    sourceViewer,
+                    derivedViewer,
+                ];
+
+                Promise.all([
+                    sourceViewer.load(
+                        sourceContainer.dataset.stlUrl
+                    ),
+                    derivedViewer.load(
+                        derivedContainer.dataset.stlUrl
+                    ),
+                ])
+                    .then(() => {
+                        derivedViewer.applyViewState(
+                            sourceViewer.getViewState()
+                        );
+
+                        removeSynchronization = (
+                            synchronizeViewers(
+                                sourceViewer,
+                                derivedViewer
+                            )
+                        );
+                    })
+                    .catch((error) => {
+                        console.error(
+                            "Comparison STL viewer load error:",
+                            error
+                        );
+                    });
+
+            } else if (singleContainer) {
+                const viewer = new LocalStlViewer(
+                    singleContainer,
+                    viewerOptions
+                );
+
+                viewers = [
+                    viewer,
+                ];
+
+                viewer.load(
+                    singleContainer.dataset.stlUrl
+                ).catch((error) => {
                     console.error(
                         "STL viewer load error:",
                         error
                     );
                 });
-
-                const autoRotateButton = document.getElementById(
-                    "stl-auto-rotate"
-                );
-
-                const reverseButton = document.getElementById(
-                    "stl-reverse"
-                );
-
-                const resetButton = document.getElementById(
-                    "stl-reset"
-                );
-
-                const frontButton = document.getElementById(
-                    "stl-front"
-                );
-
-                const topButton = document.getElementById(
-                    "stl-top"
-                );
-
-                autoRotateButton?.addEventListener(
-                    "click",
-                    () => {
-                        const isActive = viewer.toggleAutoRotate();
-
-                        autoRotateButton.textContent = isActive
-                            ? "Спри въртенето"
-                            : "Автоматично въртене";
-                    }
-                );
-
-                reverseButton?.addEventListener(
-                    "click",
-                    () => {
-                        viewer.reverseRotation();
-                    }
-                );
-
-                resetButton?.addEventListener(
-                    "click",
-                    () => {
-                        viewer.resetView();
-                    }
-                );
-
-                frontButton?.addEventListener(
-                    "click",
-                    () => {
-                        viewer.setPresetView("front");
-                    }
-                );
-
-                topButton?.addEventListener(
-                    "click",
-                    () => {
-                        viewer.setPresetView("top");
-                    }
-                );
-
-                window.addEventListener(
-                    "beforeunload",
-                    () => {
-                        viewer.dispose();
-                    },
-                    {
-                        once: true,
-                    }
-                );
             }
+
+            const autoRotateButton = document.getElementById(
+                "stl-auto-rotate"
+            );
+
+            const reverseButton = document.getElementById(
+                "stl-reverse"
+            );
+
+            const resetButton = document.getElementById(
+                "stl-reset"
+            );
+
+            const frontButton = document.getElementById(
+                "stl-front"
+            );
+
+            const topButton = document.getElementById(
+                "stl-top"
+            );
+
+            autoRotateButton?.addEventListener(
+                "click",
+                () => {
+                    const shouldRotate = (
+                        !viewers.some(
+                            (viewer) => viewer.isAutoRotating
+                        )
+                    );
+
+                    viewers.forEach((viewer) => {
+                        if (shouldRotate) {
+                            viewer.startAutoRotate();
+                        } else {
+                            viewer.stopAutoRotate();
+                        }
+                    });
+
+                    autoRotateButton.textContent = shouldRotate
+                        ? "Спри въртенето"
+                        : "Автоматично въртене";
+                }
+            );
+
+            reverseButton?.addEventListener(
+                "click",
+                () => {
+                    viewers.forEach((viewer) => {
+                        viewer.reverseRotation();
+                    });
+                }
+            );
+
+            resetButton?.addEventListener(
+                "click",
+                () => {
+                    viewers.forEach((viewer) => {
+                        viewer.resetView();
+                    });
+
+                    if (viewers.length === 2) {
+                        viewers[1].applyViewState(
+                            viewers[0].getViewState()
+                        );
+                    }
+                }
+            );
+
+            frontButton?.addEventListener(
+                "click",
+                () => {
+                    viewers.forEach((viewer) => {
+                        viewer.setPresetView("front");
+                    });
+
+                    if (viewers.length === 2) {
+                        viewers[1].applyViewState(
+                            viewers[0].getViewState()
+                        );
+                    }
+                }
+            );
+
+            topButton?.addEventListener(
+                "click",
+                () => {
+                    viewers.forEach((viewer) => {
+                        viewer.setPresetView("top");
+                    });
+
+                    if (viewers.length === 2) {
+                        viewers[1].applyViewState(
+                            viewers[0].getViewState()
+                        );
+                    }
+                }
+            );
+
+            window.addEventListener(
+                "beforeunload",
+                () => {
+                    if (removeSynchronization) {
+                        removeSynchronization();
+                    }
+
+                    viewers.forEach((viewer) => {
+                        viewer.dispose();
+                    });
+                },
+                {
+                    once: true,
+                }
+            );
         </script>
     {% endif %}
 {% endblock %}
