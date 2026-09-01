@@ -705,7 +705,7 @@ class JSONRoundTripTests(TestCase):
         source_data = {
             "text": (
                 "Инженерен анализ "
-                "на цифров двойник"
+                "на цифров близнак"
             ),
             "integer": 42,
             "decimal_as_float": 12.5,
@@ -742,7 +742,7 @@ class JSONRoundTripTests(TestCase):
             loaded_data["text"],
             (
                 "Инженерен анализ "
-                "на цифров двойник"
+                "на цифров близнак"
             ),
         )
 

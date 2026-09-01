@@ -31,7 +31,7 @@ class ExperimentForm(forms.ModelForm):
         )
 
         labels = {
-            "digital_twin": "Цифров двойник",
+            "digital_twin": "Цифров близнак",
             "name": "Наименование на експеримента",
             "description": "Описание",
             "objective": "Цел на експеримента",
@@ -39,7 +39,7 @@ class ExperimentForm(forms.ModelForm):
 
         help_texts = {
             "digital_twin": (
-                "Изберете изходния цифров двойник, върху който "
+                "Изберете изходния цифров близнак, върху който "
                 "ще се извършва експериментът."
             ),
             "name": (
@@ -105,13 +105,13 @@ class ExperimentForm(forms.ModelForm):
             self.fields["digital_twin"].disabled = True
 
             self.fields["digital_twin"].help_text = (
-                "Изходният цифров двойник не може да бъде "
+                "Изходният цифров близнак не може да бъде "
                 "променян след създаването на експеримента."
             )
 
         self.fields["digital_twin"].queryset = digital_twin_queryset
 
-        self.fields["digital_twin"].empty_label = "Изберете цифров двойник"
+        self.fields["digital_twin"].empty_label = "Изберете цифров близнак"
 
     def clean_name(self) -> str:
         """
@@ -281,15 +281,15 @@ class ExperimentFilterForm(forms.Form):
         required=False,
         label="Търсене",
         widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": ("Име, описание, цел или цифров двойник"),}
+            attrs={"class": "form-control", "placeholder": ("Име, описание, цел или цифров близнак"),}
             ),
         )
 
     digital_twin = forms.ModelChoiceField(
         required=False,
         queryset=DigitalTwin.objects.none(),
-        label="Цифров двойник",
-        empty_label="Всички цифрови двойници",
+        label="Цифров близнак",
+        empty_label="Всички цифрови близнаци",
         widget=forms.Select(attrs={"class": "form-select", }), )
 
     status = forms.ChoiceField(

@@ -69,7 +69,7 @@ SQLite Database
 | URL | Описание |
 |-----|----------|
 | `/digital-twins/` | Библиотека |
-| `/digital-twins/create/` | Нов цифров двойник |
+| `/digital-twins/create/` | Нов цифров близнак |
 | `/digital-twins/<id>/` | Детайли |
 | `/digital-twins/<id>/update/` | Редакция |
 | `/digital-twins/<id>/delete/` | Изтриване |
@@ -111,7 +111,7 @@ SQLite Database
 | `/experiments/<id>/unlock/` | Отключване |
 | `/experiments/<id>/research/` | Външен AI анализ |
 | `/experiments/<id>/local-analysis/` | Локален AI анализ |
-| `/experiments/<id>/create-derived/` | Производен цифров двойник |
+| `/experiments/<id>/create-derived/` | Производен цифров близнак |
 
 ---
 
@@ -205,7 +205,7 @@ STL Loader
 Поддържат се всички административни операции върху:
 
 - потребители;
-- цифрови двойници;
+- цифрови близнаци;
 - материали;
 - технологии;
 - експерименти;

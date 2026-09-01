@@ -291,7 +291,7 @@ class DigitalTwinForm(forms.ModelForm):
 
         if queryset.exists():
             raise ValidationError(
-                "Вече съществува цифров двойник "
+                "Вече съществува цифров близнак "
                 "с този номер на изделието."
             )
 
@@ -484,7 +484,7 @@ class DigitalTwinDeleteForm(forms.Form):
         required=True,
         label=(
             "Потвърждавам изтриването "
-            "на цифровия двойник"
+            "на цифровия близнак"
         ),
         widget=forms.CheckboxInput(
             attrs={

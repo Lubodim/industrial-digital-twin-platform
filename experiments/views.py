@@ -916,7 +916,7 @@ class ExperimentCreateResultTwinView(
             messages.success(
                 request,
                 (
-                    "Резултатният цифров двойник "
+                    "Резултатният цифров близнак "
                     f"„{result.result_twin.name}“ е създаден. "
                     "Автоматично приложени промени: "
                     f"{result.applied_change_count}. "
@@ -928,7 +928,7 @@ class ExperimentCreateResultTwinView(
             messages.warning(
                 request,
                 (
-                    "Резултатният цифров двойник "
+                    "Резултатният цифров близнак "
                     f"„{result.result_twin.name}“ е създаден, "
                     "но няма автоматично приложими промени. "
                     "Записани инженерни/CAD инструкции: "

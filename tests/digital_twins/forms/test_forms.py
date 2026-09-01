@@ -66,7 +66,7 @@ class DigitalTwinFormTests(TestCase):
             "name": "Редукторен вал",
             "part_number": "shaft-001",
             "description": (
-                "Цифров двойник на редукторен вал."
+                "Цифров близнак на редукторен вал."
             ),
             "material": str(
                 self.material.pk

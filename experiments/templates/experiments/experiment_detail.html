@@ -74,7 +74,7 @@
             <h1>{{ experiment.name }}</h1>
 
             <p class="page-description">
-                Инженерен експеримент върху цифров двойник
+                Инженерен експеримент върху цифров близнак
                 <strong>{{ experiment.digital_twin.name }}</strong>.
             </p>
         </div>
@@ -335,7 +335,7 @@
         <section class="card">
             <div class="card-header">
                 <div>
-                    <h2>Изходен цифров двойник</h2>
+                    <h2>Изходен цифров близнак</h2>
 
                     <span class="text-muted">
                         Обектът, върху който се извършва експериментът
@@ -346,7 +346,7 @@
                     href="{% url 'digital_twins:detail' experiment.digital_twin.pk %}"
                     class="button button-secondary button-small"
                 >
-                    Отвори двойника
+                    Отвори близнака
                 </a>
             </div>
 
@@ -1014,7 +1014,7 @@
                     <h2>Резултат от експеримента</h2>
 
                     <span class="text-muted">
-                        Производен цифров двойник и одобрение
+                        Производен цифров близнак и одобрение
                     </span>
                 </div>
             </div>
@@ -1022,7 +1022,7 @@
             <div class="card-body">
                 {% if experiment.result_twin %}
                     <dl class="definition-list">
-                        <dt>Резултатен двойник</dt>
+                        <dt>Резултатен близнак</dt>
 
                         <dd>
                             <a
@@ -1052,10 +1052,10 @@
                     </dl>
                 {% else %}
                     <div class="empty-state">
-                        <h3>Няма създаден резултатен двойник</h3>
+                        <h3>Няма създаден резултатен близнак</h3>
 
                         <p>
-                            Нов цифров двойник може да бъде създаден
+                            Нов цифров близнак може да бъде създаден
                             след анализ и одобрение на предложенията.
                         </p>
                     </div>
@@ -1150,7 +1150,7 @@
 
                         <p style="margin: 0 0 12px 0;">
                             Ollama обработва инженерния разговор, външните AI
-                            резултати и данните на цифровия двойник.
+                            резултати и данните на цифровия близнак.
                         </p>
 
                         <p style="margin: 0 0 12px 0;">
