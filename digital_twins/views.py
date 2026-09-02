@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import (
@@ -538,6 +540,7 @@ class DigitalTwinFileCreateView(
 
 class DigitalTwinCreateView(
     LoginRequiredMixin,
+    UserPassesTestMixin,
     FormView,
 ):
     """
@@ -548,6 +551,22 @@ class DigitalTwinCreateView(
         "digital_twins/digital_twin_form.html"
     )
     form_class = DigitalTwinForm
+
+    def test_func(self) -> bool:
+        return bool(
+            self.request.user.is_authenticated
+            and self.request.user.is_active
+            and self.request.user.is_superuser
+        )
+
+    def handle_no_permission(self) -> HttpResponse:
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+
+        raise PermissionDenied(
+            "Само суперпотребител може да създава цифров близнак."
+        )
+    
 
     def get_success_url(self) -> str:
         """

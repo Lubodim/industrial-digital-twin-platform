@@ -17,14 +17,16 @@
             </p>
         </div>
 
-        <div class="page-actions">
-            <a
-                href="{% url 'digital_twins:create' %}"
-                class="button button-primary"
-            >
-                ＋ Нов цифров близнак
-            </a>
-        </div>
+        {% if request.user.is_superuser %}
+            <div class="page-actions">
+                <a
+                    href="{% url 'digital_twins:create' %}"
+                    class="button button-primary"
+                >
+                    ＋ Нов цифров близнак
+                </a>
+            </div>
+        {% endif %}
     </section>
 
 
@@ -149,12 +151,14 @@
                     в библиотеката.
                 </p>
 
-                <a
-                    href="{% url 'digital_twins:create' %}"
-                    class="button button-primary"
-                >
-                    Създай цифров близнак
-                </a>
+                {% if request.user.is_superuser %}
+                    <a
+                        href="{% url 'digital_twins:create' %}"
+                        class="button button-primary"
+                    >
+                        Създай цифров близнак
+                    </a>
+                {% endif %}
             </div>
         {% endif %}
 

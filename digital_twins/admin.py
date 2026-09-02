@@ -251,7 +251,7 @@ class DigitalTwinAdmin(admin.ModelAdmin):
         formset.save_m2m()
 
 
-@admin.register(DigitalTwinFile)
+# @admin.register(DigitalTwinFile)
 class DigitalTwinFileAdmin(admin.ModelAdmin):
     list_display = (
         "digital_twin",

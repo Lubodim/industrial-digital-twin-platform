@@ -26,13 +26,15 @@
         </div>
 
         <div class="page-actions">
-            <a
-                href="{% url 'digital_twins:create' %}"
-                class="button button-secondary"
-            >
-                <span aria-hidden="true">＋</span>
-                Нов цифров близнак
-            </a>
+            {% if request.user.is_superuser %}
+                <a
+                    href="{% url 'digital_twins:create' %}"
+                    class="button button-secondary"
+                >
+                    <span aria-hidden="true">＋</span>
+                    Нов цифров близнак
+                </a>
+            {% endif %}
 
             <a
                 href="{% url 'experiments:create' %}"
@@ -182,12 +184,14 @@
                         Всички експерименти
                     </a>
 
-                    <a
-                        href="{% url 'digital_twins:create' %}"
-                        class="button button-primary button-block"
-                    >
-                        Създай цифров близнак
-                    </a>
+                    {% if request.user.is_superuser %}
+                        <a
+                            href="{% url 'digital_twins:create' %}"
+                            class="button button-primary button-block"
+                        >
+                            Създай цифров близнак
+                        </a>
+                    {% endif %}
 
                     <a
                         href="{% url 'experiments:create' %}"
@@ -287,12 +291,14 @@
                         в библиотеката.
                     </p>
 
-                    <a
-                        href="{% url 'digital_twins:create' %}"
-                        class="button button-primary"
-                    >
-                        Създай цифров близнак
-                    </a>
+                    {% if request.user.is_superuser %}
+                        <a
+                            href="{% url 'digital_twins:create' %}"
+                            class="button button-primary"
+                        >
+                            Създай цифров близнак
+                        </a>
+                    {% endif %}
                 </div>
             {% endif %}
         </section>
